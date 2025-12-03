@@ -1,0 +1,544 @@
+"use client"
+
+import { useState, useEffect, useMemo } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Spinner } from "@/components/ui/spinner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { 
+  Search,
+  Package,
+  AlertCircle,
+  CheckCircle,
+  Calendar,
+  MapPin,
+  Hash,
+  Filter,
+  Download,
+  Eye,
+  RefreshCw,
+  TrendingUp,
+  Clock,
+  Truck,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react"
+
+// Container Interface
+interface RegisteredContainer {
+  id: string
+  containerId: string
+  containerNumber: string
+  type: string
+  size: string
+  status: string
+  depot?: string
+  registeredAt: string
+  location?: string
+  vehicleNumber?: string
+  shippingLine?: string
+  userId?: number
+}
+
+interface ApiResponse {
+  success: boolean
+  count: number
+  data: RegisteredContainer[]
+  message?: string
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+export default function RegisteredContainersPage() {
+  const [containers, setContainers] = useState<RegisteredContainer[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [depotFilter, setDepotFilter] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  // Fetch registered containers from API
+  useEffect(() => {
+    fetchRegisteredContainers()
+  }, [])
+
+  // Get unique depots for filter
+  const uniqueDepots = useMemo(() => {
+    const depots = containers
+      .map(c => c.depot)
+      .filter((depot): depot is string => !!depot)
+    return Array.from(new Set(depots))
+  }, [containers])
+
+  // Get unique statuses for filter
+  const uniqueStatuses = useMemo(() => {
+    const statuses = containers
+      .map(c => c.status)
+      .filter((status): status is string => !!status)
+    return Array.from(new Set(statuses))
+  }, [containers])
+
+  // Filter and paginate containers
+  const filteredContainers = useMemo(() => {
+    let filtered = containers
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(container => 
+        container.containerNumber?.toLowerCase().includes(query) ||
+        container.containerId?.toLowerCase().includes(query) ||
+        container.type?.toLowerCase().includes(query) ||
+        container.depot?.toLowerCase().includes(query) ||
+        container.vehicleNumber?.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(c => c.status === statusFilter)
+    }
+
+    // Apply depot filter
+    if (depotFilter !== 'all') {
+      filtered = filtered.filter(c => c.depot === depotFilter)
+    }
+
+    return filtered
+  }, [containers, searchQuery, statusFilter, depotFilter])
+
+  // Paginate
+  const paginatedContainers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredContainers.slice(startIndex, endIndex)
+  }, [filteredContainers, currentPage, itemsPerPage])
+
+  const totalPages = Math.ceil(filteredContainers.length / itemsPerPage)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter, depotFilter])
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const registered = containers.filter(c => 
+      c.status?.toLowerCase() === 'đã đăng ký' || c.status?.toLowerCase() === 'registered'
+    ).length
+    const processing = containers.filter(c => 
+      c.status?.toLowerCase() === 'đang xử lý' || c.status?.toLowerCase() === 'processing'
+    ).length
+    const completed = containers.filter(c => 
+      c.status?.toLowerCase() === 'hoàn thành' || c.status?.toLowerCase() === 'completed'
+    ).length
+
+    return { total: containers.length, registered, processing, completed }
+  }, [containers])
+
+  // Filter containers based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredContainers(containers)
+    } else {
+      const query = searchQuery.toLowerCase()
+      const filtered = containers.filter(container => 
+        container.containerNumber?.toLowerCase().includes(query) ||
+        container.containerId?.toLowerCase().includes(query) ||
+        container.type?.toLowerCase().includes(query) ||
+        container.depot?.toLowerCase().includes(query)
+      )
+      setFilteredContainers(filtered)
+    }
+  }, [searchQuery, containers])
+
+  const fetchRegisteredContainers = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      
+      // TODO: Get userId from authentication context
+      // For now, we'll get all registered containers or use a test userId
+      const userId = 111735; // This should come from auth context in production
+      
+      console.log('Fetching registered containers from:', `${API_BASE_URL}/api/containers/registered`)
+      console.log('User ID:', userId)
+      
+      const response = await fetch(`${API_BASE_URL}/api/containers/registered?userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      })
+      
+      console.log('Response status:', response.status)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const result: ApiResponse = await response.json()
+      console.log('Registered containers data received:', result)
+      
+      if (result.success && result.data) {
+        setContainers(result.data)
+        console.log('Containers set successfully:', result.data.length, 'containers')
+      } else {
+        throw new Error(result.message || 'Invalid response format')
+      }
+    } catch (err) {
+      console.error('Error fetching registered containers:', err)
+      setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu container')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch {
+      return dateString
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'đã đăng ký':
+      case 'registered':
+        return 'bg-green-100 text-green-800'
+      case 'đang xử lý':
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'hoàn thành':
+      case 'completed':
+        return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Package className="h-7 w-7 md:h-8 md:w-8 text-purple-600" />
+              Danh sách Container đã Đăng ký
+            </h1>
+            <p className="text-gray-600 mt-2 text-sm md:text-base">
+              Quản lý và theo dõi các container bạn đã đăng ký
+            </p>
+          </div>
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <Card className="border-purple-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Tổng số</p>
+                    <p className="text-xl md:text-2xl font-bold text-gray-900">{stats.total}</p>
+                  </div>
+                  <Package className="h-8 w-8 md:h-10 md:w-10 text-purple-600 opacity-80" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-green-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Đã đăng ký</p>
+                    <p className="text-xl md:text-2xl font-bold text-green-600">{stats.registered}</p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 md:h-10 md:w-10 text-green-600 opacity-80" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-yellow-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Đang xử lý</p>
+                    <p className="text-xl md:text-2xl font-bold text-yellow-600">{stats.processing}</p>
+                  </div>
+                  <Clock className="h-8 w-8 md:h-10 md:w-10 text-yellow-600 opacity-80" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-blue-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Hoàn thành</p>
+                    <p className="text-xl md:text-2xl font-bold text-blue-600">{stats.completed}</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 md:h-10 md:w-10 text-blue-600 opacity-80" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Search and Filters */}
+          <Card className="border-purple-200">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  {/* Search */}
+                  <div className="relative md:col-span-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Tìm kiếm theo số container, booking, xe..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-white border-purple-200 focus:border-purple-400"
+                    />
+                  </div>
+
+                  {/* Status Filter */}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="bg-white border-purple-200">
+                      <SelectValue placeholder="Lọc theo trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                      {uniqueStatuses.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Depot Filter */}
+                  <Select value={depotFilter} onValueChange={setDepotFilter}>
+                    <SelectTrigger className="bg-white border-purple-200">
+                      <SelectValue placeholder="Lọc theo depot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả depot</SelectItem>
+                      {uniqueDepots.map((depot) => (
+                        <SelectItem key={depot} value={depot}>
+                          {depot}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2 justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-white px-3 py-1.5">
+                      <Filter className="h-3 w-3 mr-1.5 text-purple-600" />
+                      Hiển thị: {filteredContainers.length} / {stats.total}
+                    </Badge>
+                    {(searchQuery || statusFilter !== 'all' || depotFilter !== 'all') && (
+                      <Button
+                        onClick={() => {
+                          setSearchQuery('')
+                          setStatusFilter('all')
+                          setDepotFilter('all')
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="text-purple-600"
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={fetchRegisteredContainers}
+                      variant="outline"
+                      size="sm"
+                      className="bg-white"
+                      disabled={loading}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                      Làm mới
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white"
+                      disabled={filteredContainers.length === 0}
+                    >
+                      <Download className="h-4 w-4 mr-1.5" />
+                      Xuất Excel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+              <Button 
+                onClick={fetchRegisteredContainers} 
+                variant="outline" 
+                size="sm" 
+                className="ml-4"
+              >
+                Thử lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <div className="text-center space-y-3">
+                <Spinner className="h-8 w-8 mx-auto text-purple-600" />
+                <p className="text-gray-600">Đang tải danh sách container...</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && filteredContainers.length === 0 && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Package className="h-16 w-16 text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {searchQuery ? 'Không tìm thấy container' : 'Chưa có container đã đăng ký'}
+              </h3>
+              <p className="text-gray-600 text-center max-w-md">
+                {searchQuery 
+                  ? 'Thử điều chỉnh từ khóa tìm kiếm của bạn'
+                  : 'Bạn chưa đăng ký container nào. Hãy đăng ký container để theo dõi tại đây.'
+                }
+              </p>
+              {searchQuery && (
+                <Button
+                  onClick={() => setSearchQuery('')}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  Xóa bộ lọc
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Containers Table */}
+        {!loading && !error && filteredContainers.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-purple-600" />
+                Danh sách Container
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-purple-50">
+                      <TableHead className="font-semibold">Số Container</TableHead>
+                      <TableHead className="font-semibold">Số Booking</TableHead>
+                      <TableHead className="font-semibold">Loại/Kích thước</TableHead>
+                      <TableHead className="font-semibold">Trạng thái</TableHead>
+                      <TableHead className="font-semibold">Depot</TableHead>
+                      <TableHead className="font-semibold">Số xe</TableHead>
+                      <TableHead className="font-semibold">Ngày đăng ký</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredContainers.map((container) => (
+                      <TableRow key={container.id} className="hover:bg-purple-50/50">
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <Hash className="h-4 w-4 text-gray-400" />
+                            {container.containerId || 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium text-blue-600">
+                            {container.containerNumber || 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{container.type || 'N/A'}</span>
+                            {container.size && (
+                              <span className="text-sm text-gray-500">{container.size}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(container.status)}>
+                            {container.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {container.depot || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {container.vehicleNumber || '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(container.registeredAt)}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  )
+}

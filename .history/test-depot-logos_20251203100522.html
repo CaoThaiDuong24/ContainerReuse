@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Depot Logos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .depot-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            max-width: 400px;
+        }
+        .logo-container {
+            height: 80px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .logo-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            padding: 8px;
+        }
+        .info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .error {
+            color: red;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Depot Logos</h1>
+    <div id="depots"></div>
+
+    <script>
+        async function loadDepots() {
+            try {
+                const response = await fetch('http://localhost:5000/api/iContainerHub_Depot');
+                const data = await response.json();
+                const depots = data.data;
+
+                const container = document.getElementById('depots');
+                
+                depots.forEach(depot => {
+                    const card = document.createElement('div');
+                    card.className = 'depot-card';
+                    
+                    const hasLogo = depot.logo && depot.logo.length > 0 && depot.logo.startsWith('http');
+                    
+                    card.innerHTML = `
+                        <h3>${depot.name}</h3>
+                        <div class="logo-container" id="logo-${depot.id}">
+                            ${hasLogo ? 
+                                `<img src="${depot.logo}" alt="${depot.name}" onerror="handleError('${depot.id}', '${depot.logo}')">` 
+                                : '<div style="color: #999;">No logo</div>'
+                            }
+                        </div>
+                        <div class="info">
+                            <div><strong>ID:</strong> ${depot.id}</div>
+                            <div><strong>Province:</strong> ${depot.province}</div>
+                            <div><strong>Logo URL:</strong> ${depot.logo || 'N/A'}</div>
+                            <div><strong>Has Logo:</strong> ${hasLogo ? '✅ Yes' : '❌ No'}</div>
+                        </div>
+                        <div class="error" id="error-${depot.id}"></div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+
+                console.log('Total depots:', depots.length);
+                console.log('Depots with logo:', depots.filter(d => d.logo && d.logo.startsWith('http')).length);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('depots').innerHTML = `<div class="error">Error loading depots: ${error.message}</div>`;
+            }
+        }
+
+        function handleError(depotId, logoUrl) {
+            const errorDiv = document.getElementById(`error-${depotId}`);
+            errorDiv.textContent = `Failed to load logo: ${logoUrl}`;
+            console.error('Failed to load logo for depot', depotId, ':', logoUrl);
+        }
+
+        loadDepots();
+    </script>
+</body>
+</html>
