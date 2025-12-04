@@ -232,7 +232,7 @@ export function PickupContainerModal({
         setFormData(prev => ({ 
           ...prev, 
           driverId: selectedVehicle.drivers.length === 1 ? selectedVehicle.drivers[0].id : ''
-        }))
+        })
         
         // if (selectedVehicle.drivers.length === 1) {
         //   toast.success(`Tự động chọn tài xế: ${selectedVehicle.drivers[0].driverName}`)
@@ -259,7 +259,7 @@ export function PickupContainerModal({
         setFormData(prev => ({ 
           ...prev, 
           driverId: fetchedDrivers.length === 1 ? fetchedDrivers[0].id : ''
-        }))
+        })
         
         // if (fetchedDrivers.length === 1) {
         //   toast.success(`Tự động chọn tài xế: ${fetchedDrivers[0].driverName}`)

@@ -84,7 +84,7 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
         this.reqtime = response.data.reqtime;
         console.log('✅ Token retrieved successfully');
         if (this.token) {
-          console.log('🔐 Token (first 20 chars):', this.token);
+          console.log('🔐 Token (first 20 chars):', this.token.substring(0, 50) + '...');
         }
         console.log('⏰ Reqtime:', this.reqtime);
         return true;
@@ -122,11 +122,9 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
         
         let tokenSuccess;
         if(data && Object.keys(data).length > 0){
-          data.appversion = '2023';
           tokenSuccess = await this.getTokenData(reqid, data);
         }
         else{
-          data.appversion = '2023';
           tokenSuccess = await this.getToken(reqid);
         }
         if (!tokenSuccess) {
@@ -141,8 +139,12 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
         reqid: reqid,
         token: this.token,
         reqtime: this.reqtime,
-        data: data
+        data: {
+          appversion: '2023',
+          ...data
+        }
       };
+
       const response = await this.axiosInstance.post(endpoint, requestPayload, {
         timeout: 30000, // 30 second timeout
         ...config

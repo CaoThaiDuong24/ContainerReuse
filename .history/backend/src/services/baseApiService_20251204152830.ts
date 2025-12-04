@@ -64,8 +64,7 @@ export abstract class BaseApiService {
   }
 protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean> {
     try {
-      console.log(`🔑 Getting token with data for ${reqid}...`);
-      console.log('📦 Token request data:', JSON.stringify(dataPayload, null, 2));
+      console.log(`🔑 Getting token for ${reqid}...`);
       
       const tokenData = dataPayload || { appversion: '2023' };
       
@@ -82,22 +81,12 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
       if (response.data && response.data.token && response.data.reqtime) {
         this.token = response.data.token;
         this.reqtime = response.data.reqtime;
-        console.log('✅ Token retrieved successfully');
-        if (this.token) {
-          console.log('🔐 Token (first 20 chars):', this.token);
-        }
-        console.log('⏰ Reqtime:', this.reqtime);
+        console.log('✅ Token retrieved successfully'+ this.token+'.'+ this.reqtime);
         return true;
-      } else {
-        console.error('❌ Invalid token response:', response.data);
-        return false;
       }
+      return false;
     } catch (error: any) {
-      console.error('❌ Failed to get token with data:', error.message || error);
-      if (error.response) {
-        console.error('📛 Response status:', error.response.status);
-        console.error('📛 Response data:', error.response.data);
-      }
+      console.error('❌ Failed to get token:', error.message || error);
       return false;
     }
   }
@@ -122,11 +111,9 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
         
         let tokenSuccess;
         if(data && Object.keys(data).length > 0){
-          data.appversion = '2023';
           tokenSuccess = await this.getTokenData(reqid, data);
         }
         else{
-          data.appversion = '2023';
           tokenSuccess = await this.getToken(reqid);
         }
         if (!tokenSuccess) {
@@ -141,8 +128,12 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
         reqid: reqid,
         token: this.token,
         reqtime: this.reqtime,
-        data: data
+        data: {
+          appversion: '2023',
+          ...data
+        }
       };
+
       const response = await this.axiosInstance.post(endpoint, requestPayload, {
         timeout: 30000, // 30 second timeout
         ...config

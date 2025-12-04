@@ -90,16 +90,16 @@ export function PickupContainerModal({
           
           setGoodsList(uniqueGoods)
           console.log(`✅ Loaded ${uniqueGoods.length} unique goods types (from ${result.data.length} total)`)
-          // if (uniqueGoods.length > 0) {
-          //   toast.success(`Tải thành công ${uniqueGoods.length} loại hàng hóa`)
-          // }
+          if (uniqueGoods.length > 0) {
+            toast.success(`Tải thành công ${uniqueGoods.length} loại hàng hóa`)
+          }
         } else {
           console.warn('⚠️ No goods data found')
-          // toast.info('Không tìm thấy dữ liệu hàng hóa')
+          toast.info('Không tìm thấy dữ liệu hàng hóa')
         }
       } catch (error) {
         console.error('Error fetching goods:', error)
-        // toast.error('Không thể tải danh sách hàng hóa')
+        toast.error('Không thể tải danh sách hàng hóa')
       } finally {
         setLoadingGoods(false)
       }
@@ -163,14 +163,14 @@ export function PickupContainerModal({
             creatorId: user.id, // Mã người tạo = user id
           }))
           
-          // toast.success(`Đã tải thông tin công ty: ${result.data.name}`)
+          toast.success(`Đã tải thông tin công ty: ${result.data.name}`)
         } else {
           console.warn('⚠️ No company found for user:', user.id)
-          // toast.info('Không tìm thấy thông tin công ty. Vui lòng nhập thủ công.')
+          toast.info('Không tìm thấy thông tin công ty. Vui lòng nhập thủ công.')
         }
       } catch (error) {
         console.error('Error fetching user company:', error)
-        // toast.warning('Không thể tải thông tin công ty. Vui lòng nhập thủ công.')
+        toast.warning('Không thể tải thông tin công ty. Vui lòng nhập thủ công.')
       } finally {
         setLoadingUserCompany(false)
       }
@@ -193,19 +193,19 @@ export function PickupContainerModal({
       setLoadingVehicles(true)
       try {
         console.log('🚗 Fetching vehicles for company:', formData.transportCompanyId)
-        const result = await getVehiclesByCompany(user?.username||'')
+        const result = await getVehiclesByCompany(formData.transportCompanyId)
         const fetchedVehicles = result.data || []
         
         setVehicles(fetchedVehicles)
         
-        // if (fetchedVehicles.length > 0) {
-        //   toast.success(`Tìm thấy ${fetchedVehicles.length} xe`)
-        // } else {
-        //   toast.info('Không tìm thấy xe cho đơn vị vận tải này')
-        // }
+        if (fetchedVehicles.length > 0) {
+          toast.success(`Tìm thấy ${fetchedVehicles.length} xe`)
+        } else {
+          toast.info('Không tìm thấy xe cho đơn vị vận tải này')
+        }
       } catch (error) {
         console.error('Error fetching vehicles:', error)
-        // toast.error('Không thể tải danh sách xe')
+        toast.error('Không thể tải danh sách xe')
         setVehicles([])
       } finally {
         setLoadingVehicles(false)
@@ -234,11 +234,11 @@ export function PickupContainerModal({
           driverId: selectedVehicle.drivers.length === 1 ? selectedVehicle.drivers[0].id : ''
         }))
         
-        // if (selectedVehicle.drivers.length === 1) {
-        //   toast.success(`Tự động chọn tài xế: ${selectedVehicle.drivers[0].driverName}`)
-        // } else {
-        //   toast.info(`Tìm thấy ${selectedVehicle.drivers.length} tài xế cho xe ${selectedVehicle.vehiclePlate}`)
-        // }
+        if (selectedVehicle.drivers.length === 1) {
+          toast.success(`Tự động chọn tài xế: ${selectedVehicle.drivers[0].driverName}`)
+        } else {
+          toast.info(`Tìm thấy ${selectedVehicle.drivers.length} tài xế cho xe ${selectedVehicle.vehiclePlate}`)
+        }
         return
       }
 
@@ -261,14 +261,14 @@ export function PickupContainerModal({
           driverId: fetchedDrivers.length === 1 ? fetchedDrivers[0].id : ''
         }))
         
-        // if (fetchedDrivers.length === 1) {
-        //   toast.success(`Tự động chọn tài xế: ${fetchedDrivers[0].driverName}`)
-        // } else if (fetchedDrivers.length > 0) {
-        //   toast.info(`Tìm thấy ${fetchedDrivers.length} tài xế cho xe ${selectedVehicle.vehiclePlate}`)
-        // }
+        if (fetchedDrivers.length === 1) {
+          toast.success(`Tự động chọn tài xế: ${fetchedDrivers[0].driverName}`)
+        } else if (fetchedDrivers.length > 0) {
+          toast.info(`Tìm thấy ${fetchedDrivers.length} tài xế cho xe ${selectedVehicle.vehiclePlate}`)
+        }
       } catch (error) {
         console.error('Error fetching drivers for vehicle:', error)
-        // toast.error('Không thể tải danh sách tài xế')
+        toast.error('Không thể tải danh sách tài xế')
         setDrivers([])
       } finally {
         setLoadingDrivers(false)
@@ -619,7 +619,7 @@ export function PickupContainerModal({
                   <Input 
                     value={container?.depotName || depotName}
                     disabled
-                    className="h-11 text-sm bg-slate-200 dark:bg-slate-700 cursor-not-allowed text-slate-700 dark:text-slate-300 font-medium border-slate-300 dark:border-slate-600 opacity-80"
+                    className="h-11 text-sm bg-blue-50 dark:bg-slate-800 cursor-not-allowed text-slate-900 dark:text-slate-100 font-medium border-blue-200 dark:border-slate-600"
                   />
                 </div>
 
@@ -631,7 +631,7 @@ export function PickupContainerModal({
                   <Input 
                     value={container?.owner || ''}
                     disabled
-                    className="h-11 text-sm bg-slate-200 dark:bg-slate-700 cursor-not-allowed text-slate-700 dark:text-slate-300 font-medium border-slate-300 dark:border-slate-600 opacity-80"
+                    className="h-11 text-sm bg-blue-50 dark:bg-slate-800 cursor-not-allowed text-slate-900 dark:text-slate-100 font-medium border-blue-200 dark:border-slate-600"
                   />
                 </div>
               </div>
@@ -675,7 +675,7 @@ export function PickupContainerModal({
                     value={formData.transportCompanyName}
                     placeholder="Tự động lấy từ hệ thống"
                     disabled
-                    className="h-11 text-sm bg-slate-200 dark:bg-slate-700 cursor-not-allowed text-slate-700 dark:text-slate-300 font-medium border-slate-300 dark:border-slate-600 opacity-80"
+                    className="h-11 text-sm bg-blue-50 dark:bg-slate-800 cursor-not-allowed text-slate-900 dark:text-slate-100 font-medium border-blue-200 dark:border-slate-600"
                   />
                 </div>
                 {/* Mã đơn vị vận tải */}
@@ -737,11 +737,11 @@ export function PickupContainerModal({
                         <SelectItem key={vehicle.vehiclePlate} value={vehicle.vehiclePlate}>
                           <div className="flex flex-col py-1">
                             <span className="font-medium">{vehicle.vehiclePlate}</span>
-                            {/* {vehicle.drivers && vehicle.drivers.length > 0 && (
+                            {vehicle.drivers && vehicle.drivers.length > 0 && (
                               <span className="text-xs text-slate-500">
                                 {vehicle.drivers.length} tài xế
                               </span>
-                            )} */}
+                            )}
                           </div>
                         </SelectItem>
                       ))}
@@ -755,22 +755,52 @@ export function PickupContainerModal({
                 {/* Tài xế - New field */}
                 <div className="flex flex-col">
                   <Label htmlFor="driverId" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-2">
-                    <UserCheck className="h-4 w-4 text-red-500 shrink-0" />
+                    <UserCheck className="h-4 w-4 text-blue-500 shrink-0" />
                     <span>Tài xế</span>
-                    <span className="text-red-500 ml-0.5">*</span>
+                    {drivers.length > 0 && <span className="text-blue-500 ml-0.5">*</span>}
                   </Label>
-                  <Input 
-                    id="driverId"
-                    type="text"
-                    value={drivers.length > 0 && formData.driverId ? drivers.find(d => d.id === formData.driverId)?.driverName || formData.driverId : ''}
-                    placeholder="Chọn xe để tải danh sách tài xế"
-                    disabled
-                    className="h-11 text-sm bg-slate-200 dark:bg-slate-700 cursor-not-allowed text-slate-700 dark:text-slate-300 font-medium border-slate-300 dark:border-slate-600 opacity-80"
-                  />
+                  <Select 
+                    value={formData.driverId} 
+                    onValueChange={(value) => setFormData({...formData, driverId: value})}
+                    disabled={!selectedVehicle || loadingDrivers || drivers.length === 0}
+                  >
+                    <SelectTrigger className="w-full h-11 min-h-11 py-2.5 text-sm focus-visible:ring-2 focus-visible:ring-blue-500">
+                      <SelectValue placeholder={
+                        !selectedVehicle 
+                          ? "Chọn xe trước" 
+                          : loadingDrivers 
+                          ? "Đang tải..." 
+                          : drivers.length === 0 
+                          ? "Không có tài xế cho xe này" 
+                          : `Chọn tài xế (${drivers.length} khả dụng)`
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {drivers.map((driver) => (
+                        <SelectItem key={driver.id} value={driver.id}>
+                          <div className="flex flex-col py-1">
+                            <span className="font-medium">{driver.driverName}</span>
+                            <div className="text-xs text-slate-500 space-x-2">
+                              {driver.phoneNumber && <span>📞 {driver.phoneNumber}</span>}
+                              {driver.idCard && <span>🆔 {driver.idCard}</span>}
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {loadingDrivers && (
+                    <p className="text-xs text-blue-500 mt-1">Đang tải danh sách tài xế...</p>
+                  )}
+                  {selectedVehicle && drivers.length > 0 && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      ✓ Xe: {selectedVehicle.vehiclePlate} - {drivers.length} tài xế
+                    </p>
+                  )}
                 </div>
 
                 {/* Mã người tạo - Auto from user login */}
-                <div className="flex flex-col hidden">
+                <div className="flex flex-col">
                   <Label htmlFor="creatorId" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-2">
                     <User className="h-4 w-4 text-red-500 shrink-0" />
                     <span>Mã người tạo</span>
@@ -781,7 +811,7 @@ export function PickupContainerModal({
                     type="text"
                     value={`${user?.username}`}
                     disabled
-                    className="h-11 text-sm bg-slate-200 dark:bg-slate-700 cursor-not-allowed text-slate-700 dark:text-slate-300 font-medium border-slate-300 dark:border-slate-600 opacity-80"
+                    className="h-11 text-sm bg-blue-50 dark:bg-slate-800 cursor-not-allowed text-slate-900 dark:text-slate-100 font-medium border-blue-200 dark:border-slate-600"
                   />
                 </div>
 

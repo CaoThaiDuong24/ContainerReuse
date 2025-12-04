@@ -122,11 +122,9 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
         
         let tokenSuccess;
         if(data && Object.keys(data).length > 0){
-          data.appversion = '2023';
           tokenSuccess = await this.getTokenData(reqid, data);
         }
         else{
-          data.appversion = '2023';
           tokenSuccess = await this.getToken(reqid);
         }
         if (!tokenSuccess) {
@@ -143,6 +141,7 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
         reqtime: this.reqtime,
         data: data
       };
+
       const response = await this.axiosInstance.post(endpoint, requestPayload, {
         timeout: 30000, // 30 second timeout
         ...config

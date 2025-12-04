@@ -42,7 +42,9 @@ class DriverApiService extends BaseApiService {
       const allDrivers = this.transformDriverData(rawData);
       
       // Filter by transport company ID
-      const filteredDrivers = allDrivers
+      const filteredDrivers = allDrivers.filter(
+        driver => driver.transportCompanyId === transportCompanyId
+      );
       console.log(allDrivers[0].transportCompanyId)
             console.log(transportCompanyId)
       // Update cache

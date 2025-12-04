@@ -141,8 +141,12 @@ protected async getTokenData(reqid: string , dataPayload?: any): Promise<boolean
         reqid: reqid,
         token: this.token,
         reqtime: this.reqtime,
-        data: data
+        data: {
+          appversion: '2023',
+          ...data
+        }
       };
+      console.log('📦 Request payload:', JSON.stringify(requestPayload, null, 2));
       const response = await this.axiosInstance.post(endpoint, requestPayload, {
         timeout: 30000, // 30 second timeout
         ...config

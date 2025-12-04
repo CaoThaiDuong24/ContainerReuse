@@ -12,6 +12,8 @@ import containerTypeRoutes from './routes/containerTypeRoutes';
 import locationRoutes from './routes/locationRoutes';
 import driverRoutes from './routes/driverRoutes';
 import companyRoutes from './routes/companyRoutes';
+import vehicleRoutes from './routes/vehicleRoutes';
+import goodsRoutes from './routes/goodsRoutes';
 console.log('✅ Routes loaded');
 
 console.log('📦 Loading depot API service...');
@@ -85,6 +87,8 @@ app.use('/api/container-types', containerTypeRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/companies', companyRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/goods', goodsRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

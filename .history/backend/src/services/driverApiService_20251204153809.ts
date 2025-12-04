@@ -42,7 +42,9 @@ class DriverApiService extends BaseApiService {
       const allDrivers = this.transformDriverData(rawData);
       
       // Filter by transport company ID
-      const filteredDrivers = allDrivers
+      const filteredDrivers = allDrivers.filter(
+        driver => driver.transportCompanyId === transportCompanyId
+      );
       console.log(allDrivers[0].transportCompanyId)
             console.log(transportCompanyId)
       // Update cache
@@ -68,7 +70,7 @@ class DriverApiService extends BaseApiService {
       console.log(`📞 Requesting driver data for company: ${transportCompanyId}`);
       
       const requestData = {
-        NhaXe_UserName: transportCompanyId
+        NhaXeID: transportCompanyId
       };
       const response = await this.makeAuthenticatedRequest(
         '/api/data/process/GetList_TaiXe_Thuoc_NhaXe',

@@ -42,7 +42,9 @@ class DriverApiService extends BaseApiService {
       const allDrivers = this.transformDriverData(rawData);
       
       // Filter by transport company ID
-      const filteredDrivers = allDrivers
+      const filteredDrivers = allDrivers.filter(
+        driver => driver.transportCompanyId === transportCompanyId
+      );
       console.log(allDrivers[0].transportCompanyId)
             console.log(transportCompanyId)
       // Update cache
@@ -65,11 +67,11 @@ class DriverApiService extends BaseApiService {
    */
   private async getAllDrivers(transportCompanyId: string): Promise<any> {
     try {
-      console.log(`📞 Requesting driver data for company: ${transportCompanyId}`);
-      
       const requestData = {
-        NhaXe_UserName: transportCompanyId
+        NhaXeID: transportCompanyId,
+        appversion: '2023'
       };
+
       const response = await this.makeAuthenticatedRequest(
         '/api/data/process/GetList_TaiXe_Thuoc_NhaXe',
         this.REQID,
@@ -80,13 +82,8 @@ class DriverApiService extends BaseApiService {
         console.log('✅ Driver data retrieved successfully');
         console.log('📊 Total drivers:', Array.isArray(response.data) ? response.data.length : 0);
         return response;
-      } else if (response && response.error) {
-        console.error('❌ API returned error:', response.error);
-        return null;
-      } else {
-        console.warn('⚠️ No data in response');
-        return null;
       }
+      return null;
     } catch (error: any) {
       console.error('❌ Failed to get driver data:', error.message);
       

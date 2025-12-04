@@ -356,9 +356,9 @@ export default function ContainerCloudPage() {
                           className="hover:shadow-md transition-all duration-200 cursor-pointer border hover:border-blue-400 bg-gradient-to-br from-white to-green-50/30"
                           onClick={() => router.push(`/dashboard/depot-details/${depot.id}`)}
                         >
-                          <CardContent className="p-4">
+                          <CardContent className="p-3">
                             {/* Header: Shipping Lines (Main Info) */}
-                            <div className="mb-3 pb-3 border-b border-gray-200">
+                            <div className="mb-2 pb-2 border-b border-gray-200">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
                                   <Ship className="h-4 w-4 text-green-600" />

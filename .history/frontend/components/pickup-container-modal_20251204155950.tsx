@@ -90,16 +90,16 @@ export function PickupContainerModal({
           
           setGoodsList(uniqueGoods)
           console.log(`✅ Loaded ${uniqueGoods.length} unique goods types (from ${result.data.length} total)`)
-          // if (uniqueGoods.length > 0) {
-          //   toast.success(`Tải thành công ${uniqueGoods.length} loại hàng hóa`)
-          // }
+          if (uniqueGoods.length > 0) {
+            toast.success(`Tải thành công ${uniqueGoods.length} loại hàng hóa`)
+          }
         } else {
           console.warn('⚠️ No goods data found')
-          // toast.info('Không tìm thấy dữ liệu hàng hóa')
+          toast.info('Không tìm thấy dữ liệu hàng hóa')
         }
       } catch (error) {
         console.error('Error fetching goods:', error)
-        // toast.error('Không thể tải danh sách hàng hóa')
+        toast.error('Không thể tải danh sách hàng hóa')
       } finally {
         setLoadingGoods(false)
       }
@@ -163,14 +163,14 @@ export function PickupContainerModal({
             creatorId: user.id, // Mã người tạo = user id
           }))
           
-          // toast.success(`Đã tải thông tin công ty: ${result.data.name}`)
+          toast.success(`Đã tải thông tin công ty: ${result.data.name}`)
         } else {
           console.warn('⚠️ No company found for user:', user.id)
-          // toast.info('Không tìm thấy thông tin công ty. Vui lòng nhập thủ công.')
+          toast.info('Không tìm thấy thông tin công ty. Vui lòng nhập thủ công.')
         }
       } catch (error) {
         console.error('Error fetching user company:', error)
-        // toast.warning('Không thể tải thông tin công ty. Vui lòng nhập thủ công.')
+        toast.warning('Không thể tải thông tin công ty. Vui lòng nhập thủ công.')
       } finally {
         setLoadingUserCompany(false)
       }
@@ -198,14 +198,14 @@ export function PickupContainerModal({
         
         setVehicles(fetchedVehicles)
         
-        // if (fetchedVehicles.length > 0) {
-        //   toast.success(`Tìm thấy ${fetchedVehicles.length} xe`)
-        // } else {
-        //   toast.info('Không tìm thấy xe cho đơn vị vận tải này')
-        // }
+        if (fetchedVehicles.length > 0) {
+          toast.success(`Tìm thấy ${fetchedVehicles.length} xe`)
+        } else {
+          toast.info('Không tìm thấy xe cho đơn vị vận tải này')
+        }
       } catch (error) {
         console.error('Error fetching vehicles:', error)
-        // toast.error('Không thể tải danh sách xe')
+        toast.error('Không thể tải danh sách xe')
         setVehicles([])
       } finally {
         setLoadingVehicles(false)
@@ -234,11 +234,11 @@ export function PickupContainerModal({
           driverId: selectedVehicle.drivers.length === 1 ? selectedVehicle.drivers[0].id : ''
         }))
         
-        // if (selectedVehicle.drivers.length === 1) {
-        //   toast.success(`Tự động chọn tài xế: ${selectedVehicle.drivers[0].driverName}`)
-        // } else {
-        //   toast.info(`Tìm thấy ${selectedVehicle.drivers.length} tài xế cho xe ${selectedVehicle.vehiclePlate}`)
-        // }
+        if (selectedVehicle.drivers.length === 1) {
+          toast.success(`Tự động chọn tài xế: ${selectedVehicle.drivers[0].driverName}`)
+        } else {
+          toast.info(`Tìm thấy ${selectedVehicle.drivers.length} tài xế cho xe ${selectedVehicle.vehiclePlate}`)
+        }
         return
       }
 
@@ -261,14 +261,14 @@ export function PickupContainerModal({
           driverId: fetchedDrivers.length === 1 ? fetchedDrivers[0].id : ''
         }))
         
-        // if (fetchedDrivers.length === 1) {
-        //   toast.success(`Tự động chọn tài xế: ${fetchedDrivers[0].driverName}`)
-        // } else if (fetchedDrivers.length > 0) {
-        //   toast.info(`Tìm thấy ${fetchedDrivers.length} tài xế cho xe ${selectedVehicle.vehiclePlate}`)
-        // }
+        if (fetchedDrivers.length === 1) {
+          toast.success(`Tự động chọn tài xế: ${fetchedDrivers[0].driverName}`)
+        } else if (fetchedDrivers.length > 0) {
+          toast.info(`Tìm thấy ${fetchedDrivers.length} tài xế cho xe ${selectedVehicle.vehiclePlate}`)
+        }
       } catch (error) {
         console.error('Error fetching drivers for vehicle:', error)
-        // toast.error('Không thể tải danh sách tài xế')
+        toast.error('Không thể tải danh sách tài xế')
         setDrivers([])
       } finally {
         setLoadingDrivers(false)
@@ -735,14 +735,14 @@ export function PickupContainerModal({
                     <SelectContent>
                       {vehicles.map((vehicle) => (
                         <SelectItem key={vehicle.vehiclePlate} value={vehicle.vehiclePlate}>
-                          <div className="flex flex-col py-1">
+                          {/* <div className="flex flex-col py-1">
                             <span className="font-medium">{vehicle.vehiclePlate}</span>
-                            {/* {vehicle.drivers && vehicle.drivers.length > 0 && (
+                            {vehicle.drivers && vehicle.drivers.length > 0 && (
                               <span className="text-xs text-slate-500">
                                 {vehicle.drivers.length} tài xế
                               </span>
-                            )} */}
-                          </div>
+                            )}
+                          </div> */}
                         </SelectItem>
                       ))}
                     </SelectContent>
