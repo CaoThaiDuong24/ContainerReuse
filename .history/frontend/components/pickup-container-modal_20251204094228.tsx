@@ -89,8 +89,8 @@ export function PickupContainerModal({
       })
       
       try {
-        console.log(`🔍 Fetching company for user: ${user.username}`)
-        const result = await getCompanyByUserId(user.username)
+        console.log(`🔍 Fetching company for user: ${userId}`)
+        const result = await getCompanyByUserId(userId)
         
         if (result.success && result.data) {
           const companyId = result.data.id;
@@ -716,6 +716,7 @@ export function PickupContainerModal({
                     placeholder="Tự động từ HRMS"
                     className="h-11 text-sm focus-visible:ring-2 focus-visible:ring-blue-500 bg-purple-50/50"
                     readOnly
+                    dissable
                   />
                   {formData.invoiceCompany_Name && (
                     <p className="text-xs text-purple-600 mt-1">✓ Tự động điền từ công ty</p>

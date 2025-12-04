@@ -677,9 +677,9 @@ export function PickupContainerModal({
                     className="h-11 text-sm focus-visible:ring-2 focus-visible:ring-blue-500 bg-purple-50/50"
                     readOnly
                   />
-                  {formData.invoiceCompanyInfra && (
+                  {/* {formData.invoiceCompanyInfra && (
                     <p className="text-xs text-purple-600 mt-1">✓ Tự động điền từ công ty</p>
-                  )}
+                  )} */}
                 </div>
                 <div className="flex flex-col ">
                   <Label htmlFor="invoiceCompanyInfra_Name" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-2">

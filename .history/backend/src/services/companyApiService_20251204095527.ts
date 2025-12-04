@@ -285,7 +285,7 @@ class CompanyApiService {
           } else {
             console.log(`✅ Found company from GetList_AccountInfo: ${companyId}`);
             
-            const companyName = getValue(userProfile.CompanyName) || getValue(userProfile.VanTaiTenDayDu) || `Nhà xe ${companyId}`;
+            const companyName = getValue(userProfile.CompanyName) || getValue(userProfile.TenNhaXe) || `Nhà xe ${companyId}`;
             const taxCode = getValue(userProfile.TaxCode) || getValue(userProfile.MaSoThue);
             const address = getValue(userProfile.Address) || getValue(userProfile.DiaChi);
             const phone = getValue(userProfile.Phone) || getValue(userProfile.SoDT);

@@ -219,8 +219,8 @@ export function FilterSheet({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả kích thước</SelectItem>
-                    {availableSizes.map((size, index) => (
-                      <SelectItem key={`size-${index}-${size}`} value={size}>
+                    {availableSizes.map((size) => (
+                      <SelectItem key={size} value={size}>
                         📦 {size}
                       </SelectItem>
                     ))}
@@ -239,8 +239,8 @@ export function FilterSheet({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả loại</SelectItem>
-                    {availableTypes.map((typeCode, index) => (
-                      <SelectItem key={`type-${index}-${typeCode}`} value={typeCode}>
+                    {availableTypes.map((typeCode) => (
+                      <SelectItem key={typeCode} value={typeCode}>
                         {typeCode}
                       </SelectItem>
                     ))}

@@ -50,7 +50,7 @@ class CompanyApiService {
   }
 
   /**
-   * Get company profile data from GetList_AccountInfo API
+   * Get company profile data from HRMS_UserProfile API
    * @param accountId - Optional AccountID to get specific user profile
    */
   async getUserProfileData(accountId?: string): Promise<any> {
@@ -98,7 +98,7 @@ class CompanyApiService {
       }
       return null;
     } catch (error: any) {
-      console.error('❌ Failed to get GetList_AccountInfo data:', error.message);
+      console.error('❌ Failed to get HRMS_UserProfile data:', error.message);
       
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         console.log('⚠️ Token expired, getting new token...');
@@ -110,7 +110,7 @@ class CompanyApiService {
         if (accountId) {
           retryDataPayload.AccountID = accountId;
         }
-        const tokenSuccess = await this.getToken("GetList_AccountInfo", retryDataPayload);
+        const tokenSuccess = await this.getToken("HRMS_UserProfile", retryDataPayload);
         if (tokenSuccess) {
           return await this.getUserProfileData(accountId);
         }
@@ -191,18 +191,18 @@ class CompanyApiService {
         return cached.data;
       }
 
-      console.log(`🏢 Fetching companies from GetList_AccountInfo API...`);
+      console.log(`🏢 Fetching companies from HRMS_UserProfile API...`);
       
-      // Try GetList_AccountInfo API first
+      // Try HRMS_UserProfile API first
       const userProfileData = await this.getUserProfileData();
       
       let companies: Company[] = [];
       
       if (userProfileData && userProfileData.data && Array.isArray(userProfileData.data) && userProfileData.data.length > 0) {
-        console.log('✅ Using data from GetList_AccountInfo API');
+        console.log('✅ Using data from HRMS_UserProfile API');
         companies = this.extractCompaniesFromUserProfile(userProfileData);
       } else {
-        console.log('⚠️ GetList_AccountInfo returned no data, falling back to Driver API...');
+        console.log('⚠️ HRMS_UserProfile returned no data, falling back to Driver API...');
         // Fallback to extracting from driver API
         const rawData = await this.getDriverData();
         
@@ -251,14 +251,14 @@ class CompanyApiService {
 
   /**
    * Get company by user ID
-   * Extracts company information from GetList_AccountInfo API (primary) or Driver API (fallback)
+   * Extracts company information from HRMS_UserProfile API (primary) or Driver API (fallback)
    */
   async fetchCompanyByUserId(userId: string): Promise<Company | null> {
     try {
       console.log(`🔍 Finding company for user ID: ${userId}`);
       
-      // Try GetList_AccountInfo API first with AccountID
-      console.log('📡 Fetching from GetList_AccountInfo API...');
+      // Try HRMS_UserProfile API first with AccountID
+      console.log('📡 Fetching from HRMS_UserProfile API...');
       const userProfileData = await this.getUserProfileData(userId);
       
       if (userProfileData && userProfileData.data && Array.isArray(userProfileData.data) && userProfileData.data.length > 0) {
@@ -281,11 +281,11 @@ class CompanyApiService {
                            getValue(userProfile.AccountGroupID);
           
           if (!companyId) {
-            console.warn(`⚠️ User ${userId} has no company assigned in GetList_AccountInfo`);
+            console.warn(`⚠️ User ${userId} has no company assigned in HRMS_UserProfile`);
           } else {
-            console.log(`✅ Found company from GetList_AccountInfo: ${companyId}`);
+            console.log(`✅ Found company from HRMS_UserProfile: ${companyId}`);
             
-            const companyName = getValue(userProfile.CompanyName) || getValue(userProfile.VanTaiTenDayDu) || `Nhà xe ${companyId}`;
+            const companyName = getValue(userProfile.CompanyName) || getValue(userProfile.TenNhaXe) || `Nhà xe ${companyId}`;
             const taxCode = getValue(userProfile.TaxCode) || getValue(userProfile.MaSoThue);
             const address = getValue(userProfile.Address) || getValue(userProfile.DiaChi);
             const phone = getValue(userProfile.Phone) || getValue(userProfile.SoDT);
@@ -305,7 +305,7 @@ class CompanyApiService {
               rawApiData: { 
                 companyId, 
                 id: userId,
-                source: 'GetList_AccountInfo',
+                source: 'hrms_userprofile',
                 userProfile: {
                   userId: getValue(userProfile.UserID) || getValue(userProfile.AccUserKey),
                   userName: getValue(userProfile.UserName) || getValue(userProfile.TenHT),
@@ -431,12 +431,12 @@ class CompanyApiService {
   }
 
   /**
-   * Extract companies from GetList_AccountInfo data
+   * Extract companies from HRMS_UserProfile data
    */
   private extractCompaniesFromUserProfile(apiData: any): Company[] {
     try {
       if (!apiData || !apiData.data || !Array.isArray(apiData.data)) {
-        console.warn('⚠️ No GetList_AccountInfo data to extract companies from');
+        console.warn('⚠️ No HRMS_UserProfile data to extract companies from');
         return [];
       }
 
@@ -473,7 +473,7 @@ class CompanyApiService {
             type: 'transport',
             rawApiData: { 
               companyId, 
-              source: 'GetList_AccountInfo',
+              source: 'hrms_userprofile',
               originalData: profile 
             }
           });
@@ -481,10 +481,10 @@ class CompanyApiService {
       });
 
       const companies = Array.from(companyMap.values());
-      console.log(`✅ Extracted ${companies.length} unique companies from GetList_AccountInfo`);
+      console.log(`✅ Extracted ${companies.length} unique companies from HRMS_UserProfile`);
       return companies;
     } catch (error) {
-      console.error('❌ Error extracting companies from GetList_AccountInfo:', error);
+      console.error('❌ Error extracting companies from HRMS_UserProfile:', error);
       return [];
     }
   }

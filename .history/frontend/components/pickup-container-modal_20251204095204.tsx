@@ -89,7 +89,7 @@ export function PickupContainerModal({
       })
       
       try {
-        console.log(`🔍 Fetching company for user: ${user.username}`)
+        console.log(`🔍 Fetching company for user: ${userId}`)
         const result = await getCompanyByUserId(user.username)
         
         if (result.success && result.data) {

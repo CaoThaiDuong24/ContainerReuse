@@ -89,8 +89,8 @@ export function PickupContainerModal({
       })
       
       try {
-        console.log(`🔍 Fetching company for user: ${user.username}`)
-        const result = await getCompanyByUserId(user.username)
+        console.log(`🔍 Fetching company for user: ${userId}`)
+        const result = await getCompanyByUserId(userId)
         
         if (result.success && result.data) {
           const companyId = result.data.id;
@@ -710,7 +710,7 @@ export function PickupContainerModal({
                   </Label>
                   <Input 
                     id="invoiceCompany"
-                    type="text"
+                    type="number"
                     value={formData.invoiceCompany_Name}
                     onChange={(e) => setFormData({...formData, invoiceCompany_Name: e.target.value})}
                     placeholder="Tự động từ HRMS"

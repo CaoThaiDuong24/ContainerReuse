@@ -89,8 +89,8 @@ export function PickupContainerModal({
       })
       
       try {
-        console.log(`🔍 Fetching company for user: ${user.username}`)
-        const result = await getCompanyByUserId(user.username)
+        console.log(`🔍 Fetching company for user: ${userId}`)
+        const result = await getCompanyByUserId(userId)
         
         if (result.success && result.data) {
           const companyId = result.data.id;
@@ -105,9 +105,7 @@ export function PickupContainerModal({
             transportCompanyId: companyId,
             transportCompanyName: companyName,
             invoiceCompanyInfra: companyId,
-            invoiceCompanyInfra_Name: companyName,
             invoiceCompany: companyId,
-            invoiceCompany_Name: companyName,
             creatorId: user.id, // Mã người tạo = user id
           }))
           
@@ -681,8 +679,8 @@ export function PickupContainerModal({
                     <p className="text-xs text-purple-600 mt-1">✓ Tự động điền từ công ty</p>
                   )}
                 </div>
-                <div className="flex flex-col ">
-                  <Label htmlFor="invoiceCompanyInfra_Name" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-2">
+                <div className="flex flex-col hidden">
+                  <Label htmlFor="invoiceCompanyInfra" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-2">
                     <DollarSign className="h-4 w-4 text-red-500 shrink-0" />
                     <span>CT HĐ phí hạ tầng</span>
                     <span className="text-red-500 ml-0.5">*</span>
@@ -702,25 +700,6 @@ export function PickupContainerModal({
                 </div>
 
                 {/* Công ty in hóa đơn - Auto from company */}
-                 <div className="flex flex-col">
-                  <Label htmlFor="invoiceCompany_Name" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-2">
-                    <DollarSign className="h-4 w-4 text-red-500 shrink-0" />
-                    <span>Công ty in hóa đơn</span>
-                    <span className="text-red-500 ml-0.5">*</span>
-                  </Label>
-                  <Input 
-                    id="invoiceCompany"
-                    type="text"
-                    value={formData.invoiceCompany_Name}
-                    onChange={(e) => setFormData({...formData, invoiceCompany_Name: e.target.value})}
-                    placeholder="Tự động từ HRMS"
-                    className="h-11 text-sm focus-visible:ring-2 focus-visible:ring-blue-500 bg-purple-50/50"
-                    readOnly
-                  />
-                  {formData.invoiceCompany_Name && (
-                    <p className="text-xs text-purple-600 mt-1">✓ Tự động điền từ công ty</p>
-                  )}
-                </div>
                 <div className="flex flex-col hidden">
                   <Label htmlFor="invoiceCompany" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-2">
                     <DollarSign className="h-4 w-4 text-red-500 shrink-0" />
