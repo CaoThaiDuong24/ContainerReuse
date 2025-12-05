@@ -32,10 +32,10 @@ Cloud Yards cần lắng nghe logout signals từ Container Hub (hub1.ltacv.com)
  */
 export const getCookie = (name) => {
   if (typeof window === 'undefined') return null;
-  
+
   const nameEQ = name + '=';
   const cookies = document.cookie.split(';');
-  
+
   for (let i = 0; i < cookies.length; i++) {
     let cookie = cookies[i];
     while (cookie.charAt(0) === ' ') {
@@ -45,7 +45,7 @@ export const getCookie = (name) => {
       return decodeURIComponent(cookie.substring(nameEQ.length, cookie.length));
     }
   }
-  
+
   return null;
 };
 
@@ -57,14 +57,14 @@ export const getCookie = (name) => {
  */
 export const deleteCookie = (name, path = '/', sharedDomain = false) => {
   if (typeof window === 'undefined') return;
-  
-  const domain = sharedDomain && process.env.NODE_ENV === 'production' 
-    ? '; domain=.ltacv.com' 
+
+  const domain = sharedDomain && process.env.NODE_ENV === 'production'
+    ? '; domain=.ltacv.com'
     : '';
-  
+
   // Set expiration to past date to delete
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}${domain}; SameSite=Lax`;
-  
+
   // Also delete from current domain
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}; SameSite=Lax`;
 };
@@ -79,28 +79,28 @@ export const deleteCookie = (name, path = '/', sharedDomain = false) => {
  */
 export const setSharedCookie = (name, value, days = 7, path = '/', sharedDomain = false) => {
   if (typeof window === 'undefined') return;
-  
+
   let expires = '';
   if (days) {
     const date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     expires = `; expires=${date.toUTCString()}`;
   }
-  
+
   // Encode value để handle special characters
   const encodedValue = encodeURIComponent(value);
-  
+
   // Set domain for shared cookies (only in production)
-  const domain = sharedDomain && process.env.NODE_ENV === 'production' 
-    ? '; domain=.ltacv.com' 
+  const domain = sharedDomain && process.env.NODE_ENV === 'production'
+    ? '; domain=.ltacv.com'
     : '';
-  
+
   // Build cookie string
   const cookieString = `${name}=${encodedValue}${expires}; path=${path}${domain}; SameSite=Lax`;
-  
+
   // Add Secure flag in production (HTTPS only)
   const secureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  
+
   document.cookie = `${cookieString}${secureFlag}`;
 };
 ```
@@ -132,26 +132,26 @@ let lastLogoutFlag = null;
  */
 export const initCrossDomainLogoutListener = (logoutCallback) => {
   if (typeof window === 'undefined') return () => {};
-  
+
   console.log('👂 Initializing cross-domain logout listener...');
-  
+
   // Method 1: Listen for PostMessage
   const handlePostMessage = (event) => {
     // Verify origin
     if (!CONTAINER_HUB_ORIGINS.includes(event.origin)) {
       return;
     }
-    
+
     // Check if it's a logout message
-    if (event.data?.type === 'CROSS_DOMAIN_LOGOUT' && 
+    if (event.data?.type === 'CROSS_DOMAIN_LOGOUT' &&
         event.data?.source === 'container-hub') {
       console.log('🔔 Received logout message from Container Hub:', event.origin);
       logoutCallback();
     }
   };
-  
+
   window.addEventListener('message', handlePostMessage);
-  
+
   // Method 2: Listen for Storage Event (for same-origin tabs)
   const handleStorageChange = (e) => {
     if (e.key === LOGOUT_FLAG_KEY) {
@@ -159,15 +159,15 @@ export const initCrossDomainLogoutListener = (logoutCallback) => {
       logoutCallback();
     }
   };
-  
+
   window.addEventListener('storage', handleStorageChange);
-  
+
   // Method 3: Poll logout flag cookie
   const checkLogoutFlagCookie = () => {
     try {
       const { getCookie } = require('./cookies');
       const logoutFlag = getCookie(LOGOUT_FLAG_KEY);
-      
+
       if (logoutFlag && logoutFlag !== lastLogoutFlag) {
         console.log('🔔 Detected logout flag cookie');
         lastLogoutFlag = logoutFlag;
@@ -177,13 +177,13 @@ export const initCrossDomainLogoutListener = (logoutCallback) => {
       console.error('❌ Error checking logout flag cookie:', error);
     }
   };
-  
+
   // Check cookie every 2 seconds
   const cookieCheckInterval = setInterval(checkLogoutFlagCookie, 2000);
-  
+
   // Initial check
   checkLogoutFlagCookie();
-  
+
   // Return cleanup function
   return () => {
     window.removeEventListener('message', handlePostMessage);
@@ -193,6 +193,28 @@ export const initCrossDomainLogoutListener = (logoutCallback) => {
   };
 };
 ```
+
+---
+
+## Bổ sung: Phát logout từ Cloud Yards về Container Hub (hai chiều)
+
+- Khi Cloud Yards logout, cần **phát tín hiệu** để Container Hub (A) cũng logout:
+  - Ghi `crossDomainLogoutFlag` vào **localStorage** và **shared cookie** (`.ltacv.com`) để A có thể polling/phát hiện khi tab Cloud Yards đã đóng.
+  - Gửi `postMessage` tới origin Hub (`NEXT_PUBLIC_RCS_URL`, mặc định `https://hub1.ltacv.com`) với payload:
+    ```json
+    { "type": "CROSS_DOMAIN_LOGOUT", "source": "cloud-yards" }
+    ```
+
+### Code tham chiếu (đã có trong Cloud Yards)
+- `frontend/hooks/use-auth.tsx`:
+  - `broadcastLogout()` đặt `localStorage` flag + `setSharedCookie(LOGOUT_FLAG_KEY, flag, 1, "/", true)` + `postMessage` đến Hub origin.
+  - `logout()` gọi `broadcastLogout()` trước khi clear cookies và redirect.
+
+### Yêu cầu cho Container Hub (A) để matching
+- Lắng nghe:
+  - `postMessage` từ origin Cloud Yards (`https://rcs.ltacv.com` hoặc origin dev) với `type: "CROSS_DOMAIN_LOGOUT", source: "cloud-yards"`.
+  - Poll hoặc listen shared cookie `crossDomainLogoutFlag` (domain `.ltacv.com`) và xóa cookie sau khi xử lý.
+- Khi nhận được tín hiệu, A chạy quy trình logout của mình (clear token, storage, redirect).
 
 ---
 
