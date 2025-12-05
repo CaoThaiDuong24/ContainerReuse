@@ -1,7 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, createContext, useContext, ReactNode } from "react"
+import React, { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { deleteCookie, setSharedCookie } from "@/lib/sso/cookies"
+import { initCrossDomainLogoutListener, LOGOUT_FLAG_KEY } from "@/lib/sso/crossDomainLogoutListener"
 
 export interface User {
   id: string
@@ -17,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (token: string, user: User) => void
-  logout: () => void
+  logout: (options?: { skipRedirect?: boolean }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -63,6 +65,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (typeof window !== "undefined") {
         localStorage.setItem("authToken", newToken)
         localStorage.setItem("user", JSON.stringify(newUser))
+        // sync basic ids for downstream usage
+        if (newUser.id) {
+          localStorage.setItem("userId", newUser.id)
+        }
+        if (newUser.username) {
+          localStorage.setItem("userName", newUser.username)
+        }
+
+        // Store shared cookies for cross-subdomain access (production only)
+        if (process.env.NODE_ENV === "production") {
+          setSharedCookie("authToken", newToken, 7, "/", true)
+          setSharedCookie("user", JSON.stringify(newUser), 7, "/", true)
+          if (newUser.id) {
+            setSharedCookie("userId", newUser.id, 7, "/", true)
+          }
+          if (newUser.username) {
+            setSharedCookie("userName", newUser.username, 7, "/", true)
+          }
+        }
       }
       setToken(newToken)
       setUser(newUser)
@@ -72,32 +93,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const logout = async () => {
-    try {
-      // Gọi AuthService để xử lý logout
-      const { AuthService } = await import("@/lib/authService")
-      await AuthService.logout()
-      
-      // Clear state
-      setToken(null)
-      setUser(null)
-      setIsAuthenticated(false)
-      
-      // Redirect về login
-      router.push("/login")
-    } catch (error) {
-      console.error("Error during logout:", error)
-      // Vẫn xóa dữ liệu local dù có lỗi
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("authToken")
-        localStorage.removeItem("user")
+  const broadcastLogout = useCallback(() => {
+    if (typeof window === "undefined") return
+    const flag = Date.now().toString()
+    localStorage.setItem(LOGOUT_FLAG_KEY, flag)
+  }, [])
+
+  const logout = useCallback(
+    async (options?: { skipRedirect?: boolean }) => {
+      try {
+        const { AuthService } = await import("@/lib/authService")
+        await AuthService.logout()
+      } catch (error) {
+        console.error("Error during logout:", error)
+      } finally {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("authToken")
+          localStorage.removeItem("user")
+          localStorage.removeItem("userId")
+          localStorage.removeItem("userName")
+          broadcastLogout()
+        }
+
+        // Clear cookies across domains
+        deleteCookie("authToken", "/", true)
+        deleteCookie("user", "/", true)
+        deleteCookie("currentUser", "/", true)
+        deleteCookie("userId", "/", true)
+        deleteCookie("userName", "/", true)
+        deleteCookie(LOGOUT_FLAG_KEY, "/", true)
+
+        setToken(null)
+        setUser(null)
+        setIsAuthenticated(false)
+
+        if (!options?.skipRedirect) {
+          router.push("/login")
+        }
       }
-      setToken(null)
-      setUser(null)
-      setIsAuthenticated(false)
-      router.push("/login")
-    }
-  }
+    },
+    [broadcastLogout, router],
+  )
+
+  useEffect(() => {
+    // Initialize cross-domain logout listener
+    const cleanup = initCrossDomainLogoutListener(() => {
+      void logout()
+    })
+
+    return cleanup
+  }, [logout])
 
   const value: AuthContextType = {
     user,

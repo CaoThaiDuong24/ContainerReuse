@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Bell, Search, RefreshCw, Settings, Globe, User, ChevronDown, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -44,6 +44,9 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const { user, isAuthenticated, isLoading, login: authLogin, logout } = useAuth()
+  const [initLoading, setInitLoading] = useState(true)
+  const [initMessage] = useState("Đang đăng nhập thông qua token")
+  const hasInitialized = useRef(false)
 
   const getUrlParams = () => {
     if (typeof window === "undefined") return { token: null, userId: null, userName: null, hasToken: false }
@@ -92,7 +95,7 @@ const buildHubRedirectUrl = (currentUrl: string) => {
     }
   }
 
-  const redirectToVerify = () => {
+  const redirectToVerify = useCallback(() => {
     if (typeof window !== "undefined") {
       // Only use the base dashboard URL without query params
       const currentOrigin = window.location.origin
@@ -101,107 +104,77 @@ const buildHubRedirectUrl = (currentUrl: string) => {
     } else {
       router.push("/verify")
     }
-  }
+  }, [router])
 
   useEffect(() => {
+    if (hasInitialized.current) return
+    hasInitialized.current = true
+
     const initAuth = async () => {
       try {
-        // Check for token, userId, userName from URL query params
         const { token: urlToken, userId: urlUserId, userName: urlUserName, hasToken } = getUrlParams()
 
-        // Có tham số token nhưng rỗng → luôn coi là không hợp lệ và đi /verify
+        // Token rỗng khi có param → coi như không hợp lệ
         if (hasToken && (!urlToken || urlToken.trim() === "")) {
           redirectToVerify()
           return
         }
 
-        // If token is provided in URL, validate it first
-        if (urlToken) {
-          const isUrlTokenValid = await AuthService.validateToken(urlToken)
-          if (!isUrlTokenValid) {
-            // Token from URL is invalid → redirect to verify page
-            redirectToVerify()
-            return
-          }
-          // Token from URL is valid → save it
-          localStorage.setItem("authToken", urlToken)
-          if (urlUserId) {
-            localStorage.setItem("userId", urlUserId)
-          }
-          if (urlUserName) {
-            localStorage.setItem("userName", urlUserName)
-          }
-          // Clean query params from the URL after consuming them
-          if (typeof window !== "undefined") {
-            window.history.replaceState(null, "", window.location.pathname)
-          }
-        }
+        // Chọn token ưu tiên: URL -> localStorage -> cookie
+        const storedToken = localStorage.getItem("authToken")?.trim() || null
+        const cookieToken = getCookie("authToken")?.trim() || null
 
-        let storedToken = localStorage.getItem("authToken")
-        let userStr = localStorage.getItem("user")
-        const cookieToken = getCookie("authToken")
+        let candidateToken: string | null = null
+        let tokenSource: "url" | "storage" | "cookie" | null = null
 
-        let activeToken: string | null = null
-        let usedNewToken = false
-
-        // Ưu tiên token mới từ cookie (nếu khác với token cũ trong localStorage)
-        if (cookieToken && cookieToken !== storedToken) {
-          const isNewValid = await AuthService.validateToken(cookieToken)
-          if (isNewValid) {
-            activeToken = cookieToken
-            usedNewToken = true
-            localStorage.setItem("authToken", cookieToken)
-          } else if (storedToken) {
-            // Token mới không hợp lệ → thử lại token cũ
-            const isOldValid = await AuthService.validateToken(storedToken)
-            if (isOldValid) {
-              activeToken = storedToken
-            }
-          }
+        if (urlToken && urlToken.trim()) {
+          candidateToken = urlToken.trim()
+          tokenSource = "url"
         } else if (storedToken) {
-          // Không có token mới, hoặc mới trùng cũ → validate token cũ
-          const isOldValid = await AuthService.validateToken(storedToken)
-          if (isOldValid) {
-            activeToken = storedToken
-          }
+          candidateToken = storedToken
+          tokenSource = "storage"
+        } else if (cookieToken) {
+          candidateToken = cookieToken
+          tokenSource = "cookie"
         }
 
-        // Không có token hợp lệ nào → redirect to verify page
-        if (!activeToken) {
+        if (!candidateToken) {
           localStorage.removeItem("authToken")
           localStorage.removeItem("user")
           redirectToVerify()
           return
         }
 
-        // Sau khi đã chọn được token đang dùng, xử lý userId / userName
-        let userIdValue = decodeValue(localStorage.getItem("userId"))
-        let userNameValue = decodeValue(localStorage.getItem("userName"))
-
-        if (userIdValue) {
-          localStorage.setItem("userId", userIdValue)
-        }
-        if (userNameValue) {
-          localStorage.setItem("userName", userNameValue)
+        // Validate duy nhất 1 lần
+        const isValid = await AuthService.validateToken(candidateToken)
+        if (!isValid) {
+          localStorage.removeItem("authToken")
+          localStorage.removeItem("user")
+          redirectToVerify()
+          return
         }
 
-        // Nếu đang dùng token mới, ưu tiên userId / userName từ cookie tương ứng
-        if (usedNewToken) {
-          const cookieUserId = decodeValue(getCookie("userId"))
-          if (cookieUserId) {
-            userIdValue = cookieUserId
-            localStorage.setItem("userId", cookieUserId)
-          }
+        // Lưu token + user info
+        localStorage.setItem("authToken", candidateToken)
 
-          const cookieUserName = decodeValue(getCookie("userName"))
-          if (cookieUserName) {
-            userNameValue = cookieUserName
-            localStorage.setItem("userName", cookieUserName)
-          }
+        // Lấy userId/userName ưu tiên: URL > cookie (nếu token từ cookie) > localStorage
+        const cookieUserId = tokenSource === "cookie" ? decodeValue(getCookie("userId")) : null
+        const cookieUserName = tokenSource === "cookie" ? decodeValue(getCookie("userName")) : null
+
+        let userIdValue = decodeValue(urlUserId || cookieUserId || localStorage.getItem("userId"))
+        let userNameValue = decodeValue(urlUserName || cookieUserName || localStorage.getItem("userName"))
+
+        if (userIdValue) localStorage.setItem("userId", userIdValue)
+        if (userNameValue) localStorage.setItem("userName", userNameValue)
+
+        // Nếu token đến từ URL, xóa query
+        if (tokenSource === "url" && typeof window !== "undefined") {
+          window.history.replaceState(null, "", window.location.pathname)
         }
 
-        // Nếu token hợp lệ mà chưa có user, tạo user tối thiểu
-        if (!userStr) {
+        let userStr = localStorage.getItem("user")
+
+        if (!userStr || userStr === "undefined") {
           const fallbackUser: User = {
             id: userIdValue || "",
             username: userNameValue || userIdValue || "User",
@@ -241,48 +214,39 @@ const buildHubRedirectUrl = (currentUrl: string) => {
           userData.username = userNameValue
         }
 
-        // Đồng bộ state auth toàn cục thay vì gọi setter cục bộ (đã bị missing)
-        authLogin(activeToken, userData)
+        authLogin(candidateToken, userData)
         localStorage.setItem("user", JSON.stringify(userData))
       } catch (error) {
         console.error("Error loading auth state:", error)
         redirectToVerify()
+      } finally {
+        setInitLoading(false)
       }
     }
 
     void initAuth()
-  }, [router])
+  }, [authLogin, redirectToVerify])
+
   useEffect(() => {
+    if (initLoading) return
     if (!isLoading && !isAuthenticated) {
       redirectToVerify()
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [initLoading, isAuthenticated, isLoading, redirectToVerify])
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || initLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Đang tải...</h1>
+          <h1 className="text-2xl font-bold mb-4">{initMessage}</h1>
+          <p className="text-gray-600">Vui lòng đợi trong giây lát...</p>
         </div>
       </div>
     )
   }
 
   const handleLogout = async () => {
-    await AuthService.logout();
-
-    // Clear all tokens from localStorage
-    localStorage.removeItem("authToken")
-    localStorage.removeItem("user")
-    localStorage.removeItem("userId")
-    localStorage.removeItem("userName")
-
-    // Clear cookies (if possible)
-    if (typeof document !== "undefined") {
-      document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-      document.cookie = "userId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-      document.cookie = "userName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-    }
+    await logout({ skipRedirect: true })
 
     // Get current origin (e.g., http://localhost:3001)
     const currentOrigin = typeof window !== "undefined" ? window.location.origin : ""
@@ -296,7 +260,7 @@ const buildHubRedirectUrl = (currentUrl: string) => {
     if (typeof window !== "undefined") {
       window.location.href = rcsLogoutUrl
     } else {
-      router.push("/login")
+      router.push(rcsLogoutUrl)
     }
   }
 

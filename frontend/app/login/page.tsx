@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthService } from "@/lib/authService"
 import { useAuth } from "@/hooks/use-auth"
+import { setSharedCookie } from "@/lib/sso/cookies"
 
 const RCS_BASE_URL =
   process.env.NEXT_PUBLIC_RCS_URL || "https://hub1.ltacv.com"
@@ -28,19 +29,51 @@ export default function LoginPage() {
   const { login: authLogin } = useAuth()
 
   useEffect(() => {
-    // Get current origin (e.g., http://localhost:3001)
-    const currentOrigin = typeof window !== "undefined" ? window.location.origin : ""
-    const redirectUrl = `${currentOrigin}/dashboard`
+    if (typeof window === "undefined") return
 
-    // Build RCS login URL with redirectUrl
-    const baseUrl = RCS_BASE_URL.replace(/\/$/, "") // Remove trailing slash if exists
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get("token")
+    const userId = params.get("userId")
+    const userName = params.get("userName")
+
+    if (token) {
+      // Token came from Container Hub
+      AuthService.clearAuthData()
+
+      const userData = {
+        id: userId || "",
+        username: userName || userId || "User",
+        accuserkey: userId || "",
+      }
+
+      localStorage.setItem("authToken", token)
+      localStorage.setItem("user", JSON.stringify(userData))
+      if (userId) localStorage.setItem("userId", userId)
+      if (userName) localStorage.setItem("userName", userName)
+
+      if (process.env.NODE_ENV === "production") {
+        setSharedCookie("authToken", token, 7, "/", true)
+        setSharedCookie("user", JSON.stringify(userData), 7, "/", true)
+        if (userId) setSharedCookie("userId", userId, 7, "/", true)
+        if (userName) setSharedCookie("userName", userName, 7, "/", true)
+      }
+
+      authLogin(token, userData)
+
+      // Clean up URL and redirect into app
+      window.history.replaceState(null, "", window.location.pathname)
+      router.push("/dashboard")
+      return
+    }
+
+    // No token provided → redirect to RCS login
+    const currentOrigin = window.location.origin
+    const redirectUrl = `${currentOrigin}/dashboard`
+    const baseUrl = RCS_BASE_URL.replace(/\/$/, "")
     const rcsLoginUrl = `${baseUrl}/login?redirectUrl=${encodeURIComponent(redirectUrl)}`
 
-    // Redirect to RCS login
-    if (typeof window !== "undefined") {
-      window.location.href = rcsLoginUrl
-    }
-  }, [])
+    window.location.href = rcsLoginUrl
+  }, [authLogin, router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -72,6 +105,10 @@ export default function LoginPage() {
       
       // Lưu token và user info vào localStorage
       AuthService.saveAuthData(data)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("userId", data.accuserkey)
+        localStorage.setItem("userName", data.username)
+      }
       
       // Cập nhật AuthContext state
       authLogin(data.token, {
@@ -79,6 +116,17 @@ export default function LoginPage() {
         username: data.username,
         accuserkey: data.accuserkey
       })
+
+      if (process.env.NODE_ENV === "production") {
+        setSharedCookie("authToken", data.token, 7, "/", true)
+        setSharedCookie("user", JSON.stringify({
+          id: data.accuserkey,
+          username: data.username,
+          accuserkey: data.accuserkey
+        }), 7, "/", true)
+        setSharedCookie("userId", data.accuserkey, 7, "/", true)
+        setSharedCookie("userName", data.username, 7, "/", true)
+      }
       
       toast({
         title: "Đăng nhập thành công!",
