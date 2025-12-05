@@ -5,6 +5,22 @@ import { useRouter } from "next/navigation"
 import { deleteCookie, setSharedCookie } from "@/lib/sso/cookies"
 import { initCrossDomainLogoutListener, LOGOUT_FLAG_KEY } from "@/lib/sso/crossDomainLogoutListener"
 
+const normalizeOrigin = (url?: string | null) => {
+  if (!url) return null
+  try {
+    const normalized = new URL(url)
+    normalized.pathname = ""
+    normalized.search = ""
+    normalized.hash = ""
+    return normalized.toString().replace(/\/$/, "")
+  } catch {
+    return null
+  }
+}
+
+const DEFAULT_HUB_ORIGIN = "https://hub1.ltacv.com"
+const HUB_ORIGIN = normalizeOrigin(process.env.NEXT_PUBLIC_RCS_URL) ?? DEFAULT_HUB_ORIGIN
+
 export interface User {
   id: string
   username: string
@@ -41,7 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (typeof window !== "undefined") {
         const savedToken = localStorage.getItem("authToken")
         const savedUserStr = localStorage.getItem("user")
-        
+
         if (savedToken && savedUserStr) {
           const savedUser = JSON.parse(savedUserStr)
           setToken(savedToken)
@@ -97,6 +113,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (typeof window === "undefined") return
     const flag = Date.now().toString()
     localStorage.setItem(LOGOUT_FLAG_KEY, flag)
+
+    // Write shared cookie so Container Hub can detect even when our tab is closed
+    setSharedCookie(LOGOUT_FLAG_KEY, flag, 1, "/", true)
+
+    // Notify Container Hub via postMessage for real-time logout
+    window.postMessage(
+      {
+        type: "CROSS_DOMAIN_LOGOUT",
+        source: "cloud-yards",
+      },
+      HUB_ORIGIN,
+    )
   }, [])
 
   const logout = useCallback(
