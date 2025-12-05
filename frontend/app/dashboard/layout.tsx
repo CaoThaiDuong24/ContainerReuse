@@ -43,15 +43,16 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { user, isAuthenticated, isLoading, logout } = useAuth()
+  const { user, isAuthenticated, isLoading, login: authLogin, logout } = useAuth()
 
   const getUrlParams = () => {
-    if (typeof window === "undefined") return { token: null, userId: null, userName: null }
+    if (typeof window === "undefined") return { token: null, userId: null, userName: null, hasToken: false }
     const params = new URLSearchParams(window.location.search)
     return {
       token: params.get("token"),
       userId: params.get("userId"),
       userName: params.get("userName"),
+      hasToken: params.has("token"),
     }
   }
 
@@ -106,7 +107,13 @@ const buildHubRedirectUrl = (currentUrl: string) => {
     const initAuth = async () => {
       try {
         // Check for token, userId, userName from URL query params
-        const { token: urlToken, userId: urlUserId, userName: urlUserName } = getUrlParams()
+        const { token: urlToken, userId: urlUserId, userName: urlUserName, hasToken } = getUrlParams()
+
+        // Có tham số token nhưng rỗng → luôn coi là không hợp lệ và đi /verify
+        if (hasToken && (!urlToken || urlToken.trim() === "")) {
+          redirectToVerify()
+          return
+        }
 
         // If token is provided in URL, validate it first
         if (urlToken) {
@@ -207,35 +214,36 @@ const buildHubRedirectUrl = (currentUrl: string) => {
           localStorage.setItem("user", userStr)
         }
 
-        if (userStr) {
-          const userData = JSON.parse(userStr) as User
-
-          const decodedUserId = decodeValue(userData.userId ?? null)
-          if (decodedUserId) {
-            userData.userId = decodedUserId
-          }
-
-          const decodedUserName = decodeValue(userData.userName ?? null)
-          if (decodedUserName) {
-            userData.userName = decodedUserName
-            userData.username = decodedUserName
-          }
-
-          if (userIdValue && userData.userId !== userIdValue) {
-            userData.userId = userIdValue
-            userData.id = userIdValue
-          }
-          if (userNameValue && userData.userName !== userNameValue) {
-            userData.userName = userNameValue
-            userData.username = userNameValue
-          }
-
-          setUser(userData)
-          localStorage.setItem("user", JSON.stringify(userData))
-          setIsAuthenticated(true)
-        } else {
+        if (!userStr) {
           redirectToVerify()
+          return
         }
+
+        const userData = JSON.parse(userStr) as User
+
+        const decodedUserId = decodeValue(userData.userId ?? null)
+        if (decodedUserId) {
+          userData.userId = decodedUserId
+        }
+
+        const decodedUserName = decodeValue(userData.userName ?? null)
+        if (decodedUserName) {
+          userData.userName = decodedUserName
+          userData.username = decodedUserName
+        }
+
+        if (userIdValue && userData.userId !== userIdValue) {
+          userData.userId = userIdValue
+          userData.id = userIdValue
+        }
+        if (userNameValue && userData.userName !== userNameValue) {
+          userData.userName = userNameValue
+          userData.username = userNameValue
+        }
+
+        // Đồng bộ state auth toàn cục thay vì gọi setter cục bộ (đã bị missing)
+        authLogin(activeToken, userData)
+        localStorage.setItem("user", JSON.stringify(userData))
       } catch (error) {
         console.error("Error loading auth state:", error)
         redirectToVerify()
@@ -246,7 +254,7 @@ const buildHubRedirectUrl = (currentUrl: string) => {
   }, [router])
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/login")
+      redirectToVerify()
     }
   }, [isAuthenticated, isLoading, router])
 
