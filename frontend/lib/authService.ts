@@ -16,10 +16,11 @@ interface ErrorResponse {
 
 export class AuthService {
   private static readonly BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
+  private static readonly EXTERNAL_API_URL = process.env.NEXT_PUBLIC_EXTERNAL_API_URL || 'https://apiedepottest.gsotgroup.vn'
 
   static async login(credentials: LoginRequest): Promise<LoginResponse> {
     console.log("AuthService - Sending login request to backend")
-    
+
     const response = await fetch(`${this.BACKEND_URL}/api/auth/login`, {
       method: "POST",
       headers: {
@@ -29,7 +30,7 @@ export class AuthService {
     })
 
     const data = await response.json()
-    
+
     if (!response.ok) {
       const errorData = data as ErrorResponse
       throw new Error(errorData.error || errorData.message || `Đăng nhập thất bại (${response.status})`)
@@ -63,5 +64,44 @@ export class AuthService {
 
   static isAuthenticated(): boolean {
     return !!this.getAuthToken()
+  }
+
+  /**
+   * Validate token bằng cách gọi API AccountInfo trên hệ thống GSOT
+   * Quy ước:
+   * - 401  => token không hợp lệ
+   * - 200 / 400 / 500 ... => token hợp lệ (chỉ là lỗi business hoặc server)
+   */
+  static async validateToken(token: string): Promise<boolean> {
+    try {
+      const url = `${this.EXTERNAL_API_URL}/api/data/process/AccountInfo`
+
+      console.log("[AuthService] Validating token via", url)
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        // Body có thể rỗng, API chỉ cần token để check
+        body: JSON.stringify({}),
+      })
+
+      console.log("[AuthService] Token validation status:", response.status)
+
+      if (response.status === 401) {
+        // Token Null / Unauthorized
+        return false
+      }
+
+      // Các status khác (200, 400, 500, ...) vẫn coi như token hợp lệ
+      return true
+    } catch (error) {
+      console.error("[AuthService] Error validating token:", error)
+      // Tuỳ chính sách: nếu lỗi mạng, tạm thời coi là không hợp lệ để an toàn
+      return false
+    }
   }
 }
