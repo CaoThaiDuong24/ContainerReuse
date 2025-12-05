@@ -11,7 +11,6 @@ import { User, Lock } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthService } from "@/lib/authService"
-import { useAuth } from "@/hooks/use-auth"
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -22,7 +21,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const { login: authLogin } = useAuth()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -55,21 +53,16 @@ export default function LoginPage() {
       // Lưu token và user info vào localStorage
       AuthService.saveAuthData(data)
       
-      // Cập nhật AuthContext state
-      authLogin(data.token, {
-        id: data.accuserkey,
-        username: data.username,
-        accuserkey: data.accuserkey
-      })
-      
       toast({
         title: "Đăng nhập thành công!",
         description: `Chào mừng ${data.username}`,
         className: "bg-green-50 border-green-200 text-green-800"
       })
       
-      // Redirect ngay lập tức
-      router.push("/dashboard")
+      // Redirect sau 1.5 giây
+      setTimeout(() => {
+        router.push("/dashboard")
+      }, 1500)
     } catch (error) {
       console.error("Login error:", error)
       

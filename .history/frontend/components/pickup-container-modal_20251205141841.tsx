@@ -147,8 +147,6 @@ export function PickupContainerModal({
         if (result.success && result.data) {
           const companyId = result.data.id;
           const companyName = result.data.name;
-          const companyid_Invoice = result.data.companyid_Invoice || '';
-          const companyname_Invoice = result.data.companyname_Invoice || '';
           setUserCompany(result.data)
           console.log(`✅ Loaded user company:`, result.data)
           console.log(`📝 Auto-filling company ID: ${companyId}`)
@@ -375,6 +373,7 @@ export function PickupContainerModal({
         setLoading(false)
         return
       }
+      debugger
       // Prepare gate-out data matching API structure
       const gateOutData = {
         HangTauID: parsedFields.HangTauID,

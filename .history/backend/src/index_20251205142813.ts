@@ -90,7 +90,6 @@ app.use('/api/drivers', driverRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/goods', goodsRoutes);
-app.use('/api/order-statuses', orderStatusRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

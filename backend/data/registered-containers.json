@@ -1,1 +1,446 @@
-[]
+[
+  {
+    "id": "1764917792961-1-t97jjyima",
+    "userId": 1,
+    "containerData": {
+      "id": "",
+      "containerId": "",
+      "size": "20'",
+      "type": "GP",
+      "depotId": "3",
+      "depotName": "BSD",
+      "owner": "COS",
+      "rawApiData": {
+        "HangTauID": "13",
+        "ContTypeSizeID": "14",
+        "DepotID": "3",
+        "ContID": "",
+        "ContainerSize": "20'",
+        "ContainerType": "GP",
+        "HangTau": "COS",
+        "Depot": "BSD",
+        "_fullItem": {
+          "DepotID": {
+            "v": "3",
+            "r": "3"
+          },
+          "Depot": {
+            "v": "BSD",
+            "r": "BSD"
+          },
+          "HangTauID": {
+            "v": "13",
+            "r": "13"
+          },
+          "HangTau": {
+            "v": "COS",
+            "r": "COS"
+          },
+          "ContTypeSizeID": {
+            "v": "14",
+            "r": "14"
+          },
+          "ContTypeSize": {
+            "v": "2200",
+            "r": "2200"
+          },
+          "ContainerSize": {
+            "v": "20'",
+            "r": "20'"
+          },
+          "ContainerType": {
+            "v": "GP",
+            "r": "GP"
+          },
+          "ToaDo": {
+            "v": "10.914472098876391, 106.73154297255167",
+            "r": "10.914472098876391, 106.73154297255167"
+          },
+          "soLuong": {
+            "v": "2",
+            "r": "2"
+          },
+          "TienNangHa": {
+            "v": "999500",
+            "r": "999500"
+          }
+        }
+      }
+    },
+    "gateOutData": {
+      "HangTauID": 13,
+      "ContTypeSizeID": 14,
+      "SoChungTuNhapBai": "SGN0002222",
+      "DonViVanTaiID": 24953,
+      "SoXe": "20E-00657",
+      "NguoiTao": 1,
+      "CongTyInHoaDon_PhiHaTang": 24953,
+      "CongTyInHoaDon": 24953,
+      "DepotID": 3,
+      "SoLuongCont": 1,
+      "HangHoa": 625,
+      "containerInfo": {
+        "id": "",
+        "containerId": "",
+        "size": "20'",
+        "type": "GP",
+        "depotId": "3",
+        "depotName": "BSD",
+        "owner": "COS",
+        "rawApiData": {
+          "HangTauID": "13",
+          "ContTypeSizeID": "14",
+          "DepotID": "3",
+          "ContID": "",
+          "ContainerSize": "20'",
+          "ContainerType": "GP",
+          "HangTau": "COS",
+          "Depot": "BSD",
+          "_fullItem": {
+            "DepotID": {
+              "v": "3",
+              "r": "3"
+            },
+            "Depot": {
+              "v": "BSD",
+              "r": "BSD"
+            },
+            "HangTauID": {
+              "v": "13",
+              "r": "13"
+            },
+            "HangTau": {
+              "v": "COS",
+              "r": "COS"
+            },
+            "ContTypeSizeID": {
+              "v": "14",
+              "r": "14"
+            },
+            "ContTypeSize": {
+              "v": "2200",
+              "r": "2200"
+            },
+            "ContainerSize": {
+              "v": "20'",
+              "r": "20'"
+            },
+            "ContainerType": {
+              "v": "GP",
+              "r": "GP"
+            },
+            "ToaDo": {
+              "v": "10.914472098876391, 106.73154297255167",
+              "r": "10.914472098876391, 106.73154297255167"
+            },
+            "soLuong": {
+              "v": "2",
+              "r": "2"
+            },
+            "TienNangHa": {
+              "v": "999500",
+              "r": "999500"
+            }
+          }
+        }
+      }
+    },
+    "registeredAt": "2025-12-05T06:56:32.961Z"
+  },
+  {
+    "id": "1764918051463-1-z7qkh3w7o",
+    "userId": 1,
+    "containerData": {
+      "id": "",
+      "containerId": "",
+      "size": "20'",
+      "type": "GP",
+      "depotId": "3",
+      "depotName": "BSD",
+      "owner": "COS",
+      "rawApiData": {
+        "HangTauID": "13",
+        "ContTypeSizeID": "14",
+        "DepotID": "3",
+        "ContID": "",
+        "ContainerSize": "20'",
+        "ContainerType": "GP",
+        "HangTau": "COS",
+        "Depot": "BSD",
+        "_fullItem": {
+          "DepotID": {
+            "v": "3",
+            "r": "3"
+          },
+          "Depot": {
+            "v": "BSD",
+            "r": "BSD"
+          },
+          "HangTauID": {
+            "v": "13",
+            "r": "13"
+          },
+          "HangTau": {
+            "v": "COS",
+            "r": "COS"
+          },
+          "ContTypeSizeID": {
+            "v": "14",
+            "r": "14"
+          },
+          "ContTypeSize": {
+            "v": "2200",
+            "r": "2200"
+          },
+          "ContainerSize": {
+            "v": "20'",
+            "r": "20'"
+          },
+          "ContainerType": {
+            "v": "GP",
+            "r": "GP"
+          },
+          "ToaDo": {
+            "v": "10.914472098876391, 106.73154297255167",
+            "r": "10.914472098876391, 106.73154297255167"
+          },
+          "soLuong": {
+            "v": "1",
+            "r": "1"
+          },
+          "TienNangHa": {
+            "v": "999500",
+            "r": "999500"
+          }
+        }
+      }
+    },
+    "gateOutData": {
+      "HangTauID": 13,
+      "ContTypeSizeID": 14,
+      "SoChungTuNhapBai": "SGN0002222",
+      "DonViVanTaiID": 24953,
+      "SoXe": "20C-00068",
+      "NguoiTao": 1,
+      "CongTyInHoaDon_PhiHaTang": 24953,
+      "CongTyInHoaDon": 24953,
+      "DepotID": 3,
+      "SoLuongCont": 1,
+      "HangHoa": -1,
+      "containerInfo": {
+        "id": "",
+        "containerId": "",
+        "size": "20'",
+        "type": "GP",
+        "depotId": "3",
+        "depotName": "BSD",
+        "owner": "COS",
+        "rawApiData": {
+          "HangTauID": "13",
+          "ContTypeSizeID": "14",
+          "DepotID": "3",
+          "ContID": "",
+          "ContainerSize": "20'",
+          "ContainerType": "GP",
+          "HangTau": "COS",
+          "Depot": "BSD",
+          "_fullItem": {
+            "DepotID": {
+              "v": "3",
+              "r": "3"
+            },
+            "Depot": {
+              "v": "BSD",
+              "r": "BSD"
+            },
+            "HangTauID": {
+              "v": "13",
+              "r": "13"
+            },
+            "HangTau": {
+              "v": "COS",
+              "r": "COS"
+            },
+            "ContTypeSizeID": {
+              "v": "14",
+              "r": "14"
+            },
+            "ContTypeSize": {
+              "v": "2200",
+              "r": "2200"
+            },
+            "ContainerSize": {
+              "v": "20'",
+              "r": "20'"
+            },
+            "ContainerType": {
+              "v": "GP",
+              "r": "GP"
+            },
+            "ToaDo": {
+              "v": "10.914472098876391, 106.73154297255167",
+              "r": "10.914472098876391, 106.73154297255167"
+            },
+            "soLuong": {
+              "v": "1",
+              "r": "1"
+            },
+            "TienNangHa": {
+              "v": "999500",
+              "r": "999500"
+            }
+          }
+        }
+      }
+    },
+    "registeredAt": "2025-12-05T07:00:51.463Z"
+  },
+  {
+    "id": "1764919272330-4601587076-83rxzufom",
+    "userId": "4601587076",
+    "containerData": {
+      "id": "",
+      "containerId": "",
+      "size": "40'",
+      "type": "GP",
+      "depotId": "3",
+      "depotName": "BSD",
+      "owner": "COS",
+      "rawApiData": {
+        "HangTauID": "13",
+        "ContTypeSizeID": "67",
+        "DepotID": "3",
+        "ContID": "",
+        "ContainerSize": "40'",
+        "ContainerType": "GP",
+        "HangTau": "COS",
+        "Depot": "BSD",
+        "_fullItem": {
+          "DepotID": {
+            "v": "3",
+            "r": "3"
+          },
+          "Depot": {
+            "v": "BSD",
+            "r": "BSD"
+          },
+          "HangTauID": {
+            "v": "13",
+            "r": "13"
+          },
+          "HangTau": {
+            "v": "COS",
+            "r": "COS"
+          },
+          "ContTypeSizeID": {
+            "v": "67",
+            "r": "67"
+          },
+          "ContTypeSize": {
+            "v": "4500",
+            "r": "4500"
+          },
+          "ContainerSize": {
+            "v": "40'",
+            "r": "40'"
+          },
+          "ContainerType": {
+            "v": "GP",
+            "r": "GP"
+          },
+          "ToaDo": {
+            "v": "10.914472098876391, 106.73154297255167",
+            "r": "10.914472098876391, 106.73154297255167"
+          },
+          "soLuong": {
+            "v": "2",
+            "r": "2"
+          },
+          "TienNangHa": {
+            "v": "1499500",
+            "r": "1499500"
+          }
+        }
+      }
+    },
+    "gateOutData": {
+      "HangTauID": 13,
+      "ContTypeSizeID": 67,
+      "SoChungTuNhapBai": "SGN0002222",
+      "DonViVanTaiID": 24953,
+      "SoXe": "20L-7687",
+      "NguoiTao": "4601587076",
+      "CongTyInHoaDon_PhiHaTang": 83615,
+      "CongTyInHoaDon": 83615,
+      "DepotID": 3,
+      "SoLuongCont": 1,
+      "HangHoa": -1,
+      "containerInfo": {
+        "id": "",
+        "containerId": "",
+        "size": "40'",
+        "type": "GP",
+        "depotId": "3",
+        "depotName": "BSD",
+        "owner": "COS",
+        "rawApiData": {
+          "HangTauID": "13",
+          "ContTypeSizeID": "67",
+          "DepotID": "3",
+          "ContID": "",
+          "ContainerSize": "40'",
+          "ContainerType": "GP",
+          "HangTau": "COS",
+          "Depot": "BSD",
+          "_fullItem": {
+            "DepotID": {
+              "v": "3",
+              "r": "3"
+            },
+            "Depot": {
+              "v": "BSD",
+              "r": "BSD"
+            },
+            "HangTauID": {
+              "v": "13",
+              "r": "13"
+            },
+            "HangTau": {
+              "v": "COS",
+              "r": "COS"
+            },
+            "ContTypeSizeID": {
+              "v": "67",
+              "r": "67"
+            },
+            "ContTypeSize": {
+              "v": "4500",
+              "r": "4500"
+            },
+            "ContainerSize": {
+              "v": "40'",
+              "r": "40'"
+            },
+            "ContainerType": {
+              "v": "GP",
+              "r": "GP"
+            },
+            "ToaDo": {
+              "v": "10.914472098876391, 106.73154297255167",
+              "r": "10.914472098876391, 106.73154297255167"
+            },
+            "soLuong": {
+              "v": "2",
+              "r": "2"
+            },
+            "TienNangHa": {
+              "v": "1499500",
+              "r": "1499500"
+            }
+          }
+        }
+      }
+    },
+    "registeredAt": "2025-12-05T07:21:12.330Z"
+  }
+]
