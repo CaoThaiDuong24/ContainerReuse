@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Bell, Search, RefreshCw, Settings, Globe, User, ChevronDown, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,7 +22,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AuthService } from "@/lib/authService"
+
+interface User {
+  id: string
+  username: string
+  email: string
+  role: string
+  userId?: string
+  userName?: string
+}
 import { useAuth } from "@/hooks/use-auth"
+
+const RCS_BASE_URL =
+  process.env.NEXT_PUBLIC_RCS_URL || "https://hub1.ltacv.com"
 
 export default function DashboardLayout({
   children,
@@ -30,26 +43,225 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { user, isAuthenticated, isLoading, logout } = useAuth()
+  const { user, isAuthenticated, isLoading, login: authLogin, logout } = useAuth()
+  const [initLoading, setInitLoading] = useState(true)
+  const [initMessage] = useState("Đang đăng nhập thông qua token")
+  const hasInitialized = useRef(false)
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+  const getUrlParams = () => {
+    if (typeof window === "undefined") return { token: null, userId: null, userName: null, hasToken: false }
+    const params = new URLSearchParams(window.location.search)
+    return {
+      token: params.get("token"),
+      userId: params.get("userId"),
+      userName: params.get("userName"),
+      hasToken: params.has("token"),
+    }
+  }
+
+  const getCookie = (name: string): string | null => {
+    if (typeof document === "undefined") return null
+    const value = `; ${document.cookie}`
+    const parts = value.split(`; ${name}=`)
+    if (parts.length === 2) {
+      const part = parts.pop()
+      if (!part) return null
+      return part.split(";").shift() || null
+    }
+    return null
+  }
+
+const decodeValue = (value: string | null): string | null => {
+  if (!value) return null
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "))
+  } catch {
+    return value
+  }
+}
+
+const buildHubRedirectUrl = (currentUrl: string) => {
+    // Append /login?redirectUrl=... to base URL
+    const baseUrl = RCS_BASE_URL.replace(/\/$/, "") // Remove trailing slash if exists
+    return `${baseUrl}/login?redirectUrl=${encodeURIComponent(currentUrl)}`
+  }
+
+  const redirectToHubLogin = () => {
+    if (typeof window !== "undefined") {
+      const currentUrl = window.location.href
+      window.location.href = buildHubRedirectUrl(currentUrl)
+    } else {
       router.push("/login")
     }
-  }, [isAuthenticated, isLoading, router])
+  }
 
-  if (isLoading || !isAuthenticated) {
+  const redirectToVerify = useCallback(() => {
+    if (typeof window !== "undefined") {
+      // Only use the base dashboard URL without query params
+      const currentOrigin = window.location.origin
+      const redirectUrl = `${currentOrigin}/dashboard`
+      router.push(`/verify?redirectUrl=${encodeURIComponent(redirectUrl)}`)
+    } else {
+      router.push("/verify")
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (hasInitialized.current) return
+    hasInitialized.current = true
+
+    const initAuth = async () => {
+      try {
+        const { token: urlToken, userId: urlUserId, userName: urlUserName, hasToken } = getUrlParams()
+
+        // Token rỗng khi có param → coi như không hợp lệ
+        if (hasToken && (!urlToken || urlToken.trim() === "")) {
+          redirectToVerify()
+          return
+        }
+
+        // Chọn token ưu tiên: URL -> localStorage -> cookie
+        const storedToken = localStorage.getItem("authToken")?.trim() || null
+        const cookieToken = getCookie("authToken")?.trim() || null
+
+        let candidateToken: string | null = null
+        let tokenSource: "url" | "storage" | "cookie" | null = null
+
+        if (urlToken && urlToken.trim()) {
+          candidateToken = urlToken.trim()
+          tokenSource = "url"
+        } else if (storedToken) {
+          candidateToken = storedToken
+          tokenSource = "storage"
+        } else if (cookieToken) {
+          candidateToken = cookieToken
+          tokenSource = "cookie"
+        }
+
+        if (!candidateToken) {
+          localStorage.removeItem("authToken")
+          localStorage.removeItem("user")
+          redirectToVerify()
+          return
+        }
+
+        // Validate duy nhất 1 lần
+        const isValid = await AuthService.validateToken(candidateToken)
+        if (!isValid) {
+          localStorage.removeItem("authToken")
+          localStorage.removeItem("user")
+          redirectToVerify()
+          return
+        }
+
+        // Lưu token + user info
+        localStorage.setItem("authToken", candidateToken)
+
+        // Lấy userId/userName ưu tiên: URL > cookie (nếu token từ cookie) > localStorage
+        const cookieUserId = tokenSource === "cookie" ? decodeValue(getCookie("userId")) : null
+        const cookieUserName = tokenSource === "cookie" ? decodeValue(getCookie("userName")) : null
+
+        let userIdValue = decodeValue(urlUserId || cookieUserId || localStorage.getItem("userId"))
+        let userNameValue = decodeValue(urlUserName || cookieUserName || localStorage.getItem("userName"))
+
+        if (userIdValue) localStorage.setItem("userId", userIdValue)
+        if (userNameValue) localStorage.setItem("userName", userNameValue)
+
+        // Nếu token đến từ URL, xóa query
+        if (tokenSource === "url" && typeof window !== "undefined") {
+          window.history.replaceState(null, "", window.location.pathname)
+        }
+
+        let userStr = localStorage.getItem("user")
+
+        if (!userStr || userStr === "undefined") {
+          const fallbackUser: User = {
+            id: userIdValue || "",
+            username: userNameValue || userIdValue || "User",
+            email: "",
+            role: "user",
+            userId: userIdValue || undefined,
+            userName: userNameValue || undefined,
+          }
+          userStr = JSON.stringify(fallbackUser)
+          localStorage.setItem("user", userStr)
+        }
+
+        if (!userStr) {
+          redirectToVerify()
+          return
+        }
+
+        const userData = JSON.parse(userStr) as User
+
+        const decodedUserId = decodeValue(userData.userId ?? null)
+        if (decodedUserId) {
+          userData.userId = decodedUserId
+        }
+
+        const decodedUserName = decodeValue(userData.userName ?? null)
+        if (decodedUserName) {
+          userData.userName = decodedUserName
+          userData.username = decodedUserName
+        }
+
+        if (userIdValue && userData.userId !== userIdValue) {
+          userData.userId = userIdValue
+          userData.id = userIdValue
+        }
+        if (userNameValue && userData.userName !== userNameValue) {
+          userData.userName = userNameValue
+          userData.username = userNameValue
+        }
+
+        authLogin(candidateToken, userData)
+        localStorage.setItem("user", JSON.stringify(userData))
+      } catch (error) {
+        console.error("Error loading auth state:", error)
+        redirectToVerify()
+      } finally {
+        setInitLoading(false)
+      }
+    }
+
+    void initAuth()
+  }, [authLogin, redirectToVerify])
+
+  useEffect(() => {
+    if (initLoading) return
+    if (!isLoading && !isAuthenticated) {
+      redirectToVerify()
+    }
+  }, [initLoading, isAuthenticated, isLoading, redirectToVerify])
+
+  if (isLoading || initLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Đang tải...</h1>
+          <h1 className="text-2xl font-bold mb-4">{initMessage}</h1>
+          <p className="text-gray-600">Vui lòng đợi trong giây lát...</p>
         </div>
       </div>
     )
   }
 
   const handleLogout = async () => {
-    await logout()
+    await logout({ skipRedirect: true })
+
+    // Get current origin (e.g., http://localhost:3001)
+    const currentOrigin = typeof window !== "undefined" ? window.location.origin : ""
+    const redirectUrl = `${currentOrigin}/dashboard`
+
+    // Build RCS logout URL with redirectUrl
+    const baseUrl = RCS_BASE_URL.replace(/\/$/, "") // Remove trailing slash if exists
+    const rcsLogoutUrl = `${baseUrl}/logout?redirectUrl=${encodeURIComponent(redirectUrl)}`
+
+    // Redirect to RCS logout
+    if (typeof window !== "undefined") {
+      window.location.href = rcsLogoutUrl
+    } else {
+      router.push(rcsLogoutUrl)
+    }
   }
 
   const getGreeting = () => {
@@ -72,7 +284,7 @@ export default function DashboardLayout({
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-to-br from-purple-50 via-white to-blue-50">
         <AppSidebar />
-        
+
         <div className="flex-1 flex flex-col">
           {/* Top Header - Redesigned */}
           <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur-md shadow-sm">
@@ -80,10 +292,10 @@ export default function DashboardLayout({
               {/* Left Section - Greeting & Search */}
               <div className="flex items-center gap-6 flex-1">
                 <SidebarTrigger className="h-10 w-10 hover:bg-purple-50 transition-all duration-200 rounded-lg" />
-                
+
                 <div className="flex flex-col">
                   <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                    {getGreeting()}, {user?.username || "John"}
+                    {getGreeting()}, {user?.userName || user?.username || "John"}
                   </h1>
                   <p className="text-sm text-gray-500 flex items-center gap-2">
                     <span>Your latest system updates here</span>
@@ -131,9 +343,9 @@ export default function DashboardLayout({
                 <div className="hidden md:block h-8 w-px bg-gray-200" />
 
                 {/* Notification Button */}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-10 w-10 relative hover:bg-purple-50 transition-all duration-200 rounded-lg"
                 >
                   <Bell className="h-5 w-5 text-gray-600" />
@@ -141,9 +353,9 @@ export default function DashboardLayout({
                 </Button>
 
                 {/* Globe Button */}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="hidden md:flex h-10 w-10 hover:bg-purple-50 transition-all duration-200 rounded-lg"
                 >
                   <Globe className="h-5 w-5 text-gray-600" />
@@ -163,11 +375,11 @@ export default function DashboardLayout({
                       </Avatar>
                       <div className="hidden lg:flex flex-col items-start">
                         <span className="text-sm font-semibold text-gray-900">
-                          {user?.username || "John Smith"}
+                          {user?.userName || user?.username || "User"}
                         </span>
                         <span className="text-xs text-gray-500 flex items-center gap-1">
                           <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
-                          {user?.role || "admin"}
+                          {user?.userId || user?.role || "user"}
                         </span>
                       </div>
                       <ChevronDown className="hidden lg:block h-4 w-4 text-gray-400 group-hover:text-purple-600 transition-colors" />
@@ -176,10 +388,10 @@ export default function DashboardLayout({
                   <DropdownMenuContent align="end" className="w-64 p-2">
                     <div className="px-3 py-3 border-b border-gray-100 mb-2">
                       <p className="text-sm font-semibold text-gray-900">
-                        {user?.username || "John Smith"}
+                        {user?.userName || user?.username || "John Smith"}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {user?.email || "john@example.com"}
+                        {user?.userId || user?.email || ""}
                       </p>
                     </div>
                     <DropdownMenuItem className="cursor-pointer rounded-lg">
@@ -191,7 +403,7 @@ export default function DashboardLayout({
                       <span className="text-sm">Preferences</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-2" />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={handleLogout}
                       className="cursor-pointer rounded-lg text-red-600 focus:text-red-600 focus:bg-red-50"
                     >
