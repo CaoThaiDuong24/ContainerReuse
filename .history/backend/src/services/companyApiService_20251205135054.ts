@@ -287,14 +287,10 @@ class CompanyApiService {
             const email = getValue(userProfile.Email);
             const contactPerson = getValue(userProfile.ContactPerson) || getValue(userProfile.NguoiLienHe);
             
-            const companyNameInvoice = getValue(userProfile.TenCongTyInHoaDon) ;
-            const companyId_Invoice = getValue(userProfile.MaSoThue	);
             return {
               id: companyId,
               code: companyId,
               name: companyName,
-              companyid_Invoice: companyId_Invoice,
-              companyname_Invoice: companyNameInvoice,
               taxCode: taxCode,
               address: address,
               phone: phone,

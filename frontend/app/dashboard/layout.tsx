@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Bell, Search, RefreshCw, Settings, Globe, User, ChevronDown, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,7 @@ interface User {
   userId?: string
   userName?: string
 }
+import { useAuth } from "@/hooks/use-auth"
 
 const RCS_BASE_URL =
   process.env.NEXT_PUBLIC_RCS_URL || "https://hub1.ltacv.com"
@@ -41,9 +42,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
+  const { user, isAuthenticated, isLoading, logout } = useAuth()
 
   const getUrlParams = () => {
     if (typeof window === "undefined") return { token: null, userId: null, userName: null }
@@ -244,8 +244,13 @@ const buildHubRedirectUrl = (currentUrl: string) => {
 
     void initAuth()
   }, [router])
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login")
+    }
+  }, [isAuthenticated, isLoading, router])
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -255,7 +260,9 @@ const buildHubRedirectUrl = (currentUrl: string) => {
     )
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await AuthService.logout();
+
     // Clear all tokens from localStorage
     localStorage.removeItem("authToken")
     localStorage.removeItem("user")

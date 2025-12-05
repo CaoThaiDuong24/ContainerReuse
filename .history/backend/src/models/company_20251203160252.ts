@@ -7,8 +7,6 @@ export interface Company {
   id: string;
   code: string;
   name: string;
-  companyid_Invoice?: string;
-  companyname_Invoice?: string;
   taxCode?: string;
   address?: string;
   phone?: string;

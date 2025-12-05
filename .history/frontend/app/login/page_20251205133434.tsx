@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthService } from "@/lib/authService"
 import { useAuth } from "@/hooks/use-auth"
 
-const RCS_BASE_URL =
-  process.env.NEXT_PUBLIC_RCS_URL || "https://hub1.ltacv.com"
-
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     username: "",
@@ -26,21 +23,6 @@ export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { login: authLogin } = useAuth()
-
-  useEffect(() => {
-    // Get current origin (e.g., http://localhost:3001)
-    const currentOrigin = typeof window !== "undefined" ? window.location.origin : ""
-    const redirectUrl = `${currentOrigin}/dashboard`
-
-    // Build RCS login URL with redirectUrl
-    const baseUrl = RCS_BASE_URL.replace(/\/$/, "") // Remove trailing slash if exists
-    const rcsLoginUrl = `${baseUrl}/login?redirectUrl=${encodeURIComponent(redirectUrl)}`
-
-    // Redirect to RCS login
-    if (typeof window !== "undefined") {
-      window.location.href = rcsLoginUrl
-    }
-  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

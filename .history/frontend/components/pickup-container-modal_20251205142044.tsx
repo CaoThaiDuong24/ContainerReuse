@@ -375,6 +375,7 @@ export function PickupContainerModal({
         setLoading(false)
         return
       }
+      debugger
       // Prepare gate-out data matching API structure
       const gateOutData = {
         HangTauID: parsedFields.HangTauID,

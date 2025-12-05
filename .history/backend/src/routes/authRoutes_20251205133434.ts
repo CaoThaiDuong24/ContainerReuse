@@ -84,7 +84,7 @@ router.post('/login', async (req: Request, res: Response) => {
 // Logout endpoint
 router.post('/logout', async (req: Request, res: Response) => {
   try {
-    // const token = req.headers.authorization?.replace('Bearer ', '');
+    const token = req.headers.authorization?.replace('Bearer ', '');
     const username = req.body.username;
 
     console.log('🚪 Logout request received:', { username });

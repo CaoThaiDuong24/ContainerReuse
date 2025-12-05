@@ -6,7 +6,6 @@ class ContainerApiService {
     this.token = null;
     this.reqtime = null;
     this.depotIdMap = null; // Cache for depot ID mapping
-    this.cache = {}; // Cache for API responses
   }
 
   /**
@@ -149,15 +148,6 @@ class ContainerApiService {
 
   async getListReUseNow() {
     try {
-      // Cache data for 2 minutes to reduce API calls
-      const cacheKey = 'reuse_now';
-      const cacheExpiry = 2 * 60 * 1000; // 2 minutes
-      
-      if (this.cache[cacheKey] && (Date.now() - this.cache[cacheKey].timestamp < cacheExpiry)) {
-        console.log('✨ Returning cached reuse container list');
-        return this.cache[cacheKey].data;
-      }
-
       if (!this.token || !this.reqtime) {
         console.log('⚠️ Token not available, getting new token...');
         const tokenData = await this.getToken("GetListReUse_Now", {
@@ -193,7 +183,7 @@ class ContainerApiService {
         headers: {
           'Content-Type': 'application/json'
         },
-        timeout: 60000 // 60 second timeout (increased from 30s)
+        timeout: 30000 // 30 second timeout
       });
 
       if (response.data && response.data.data) {
@@ -210,12 +200,6 @@ class ContainerApiService {
           depotIdCounts[c.depotId] = (depotIdCounts[c.depotId] || 0) + 1;
         });
         console.log('📍 Containers by Depot ID:', depotIdCounts);
-        
-        // Cache the result for getListReUseNow
-        this.cache[cacheKey] = {
-          data: containers,
-          timestamp: Date.now()
-        };
         
         return containers;
       } else {
@@ -238,145 +222,6 @@ class ContainerApiService {
       }
       return null;
     }
-  }
-
-  /**
-   * Get list of registered containers (orders that have been gate-out)
-   * Uses GetList_DonHang_ReUse_Out_Now API endpoint
-   */
-  async getListDonHangReUseOutNow(userId = null) {
-    try {
-      // Cache data for 1 minute to reduce API calls
-      const cacheKey = `donhang_out_now_${userId || 'all'}`;
-      const cacheExpiry = 1 * 60 * 1000; // 1 minute
-      
-      if (this.cache[cacheKey] && (Date.now() - this.cache[cacheKey].timestamp < cacheExpiry)) {
-        console.log('✨ Returning cached registered container list');
-        return this.cache[cacheKey].data;
-      }
-
-      if (!this.token || !this.reqtime) {
-        console.log('⚠️ Token not available, getting new token...');
-        const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", {
-          appversion: '2023'
-        });
-        if (!tokenData) {
-          throw new Error('Failed to get token');
-        }
-        this.token = tokenData.token;
-        this.reqtime = tokenData.reqtime;
-      }
-
-      console.log('📡 Calling API to get registered container list (DonHang Out Now)...');
-      console.log(`URL: ${this.apiUrl}/api/data/process/GetList_DonHang_ReUse_Out_Now`);
-      
-      const requestData = {
-        appversion: '2023'
-      };
-      
-      // If userId is provided, add it to the request
-      if (userId) {
-        requestData.NguoiTao = userId;
-      }
-      
-      console.log('payload', {
-        reqid: "GetList_DonHang_ReUse_Out_Now",
-        token: this.token,
-        reqtime: this.reqtime,
-        data: requestData
-      });
-      
-      const response = await axios.post(`${this.apiUrl}/api/data/process/GetList_DonHang_ReUse_Out_Now`, {
-        reqid: "GetList_DonHang_ReUse_Out_Now",
-        token: this.token,
-        reqtime: this.reqtime,
-        data: requestData
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 60000 // 60 second timeout
-      });
-
-      if (response.data && response.data.data) {
-        console.log('✅ Registered container list retrieved successfully');
-        console.log('📊 Response status:', response.status);
-        console.log('📊 Registered containers count:', response.data.data.length);
-        
-        // Transform API data to match frontend format
-        const containers = await this.transformRegisteredContainerData(response.data.data);
-        
-        // Cache the result
-        this.cache[cacheKey] = {
-          data: containers,
-          timestamp: Date.now()
-        };
-        
-        return containers;
-      } else {
-        console.error('❌ Invalid data response');
-        return [];
-      }
-    } catch (error) {
-      console.error('❌ Failed to get registered container list:', error.message || error);
-      // If token error, try to get new token
-      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        console.log('⚠️ Token expired, getting new token...');
-        this.token = null;
-        this.reqtime = null;
-        const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", {
-          appversion: '2023'
-        });
-        if (tokenData) {
-          this.token = tokenData.token;
-          this.reqtime = tokenData.reqtime;
-          return await this.getListDonHangReUseOutNow(userId);
-        }
-      }
-      return [];
-    }
-  }
-
-  /**
-   * Transform registered container API data to frontend format
-   */
-  async transformRegisteredContainerData(apiData) {
-    if (!Array.isArray(apiData)) {
-      console.warn('⚠️ API data is not an array');
-      return [];
-    }
-
-    return apiData.map(item => {
-      // Helper function to get value from API field
-      const getValue = (field) => {
-        if (!field) return '';
-        if (typeof field === 'object') {
-          return field.v !== undefined ? field.v : (field.r !== undefined ? field.r : '');
-        }
-        return field;
-      };
-
-      return {
-        id: getValue(item.ID) || getValue(item.MaPhieuXuat) || '',
-        containerId: getValue(item.MaPhieuXuat) || '',
-        containerNumber: getValue(item.SoChungTuNhapBai) || getValue(item.ContID) || 'N/A',
-        type: getValue(item.ContainerType) || getValue(item.LoaiCont) || 'GP',
-        size: getValue(item.ContainerSize) || getValue(item.KichThuoc) || "40'",
-        status: getValue(item.TrangThai) || 'Đã đăng ký',
-        depot: getValue(item.DepotName) || getValue(item.Depot) || 'N/A',
-        depotId: getValue(item.DepotID) || '',
-        registeredAt: getValue(item.NgayTao) || getValue(item.ThoiGianTao) || new Date().toISOString(),
-        location: getValue(item.ViTri) || getValue(item.Location) || '',
-        vehicleNumber: getValue(item.SoXe) || '',
-        shippingLine: getValue(item.HangTau) || 'N/A',
-        shippingLineId: getValue(item.HangTauID) || '',
-        emptyReturnDeadline: getValue(item.HanTraRong) || '',
-        userId: getValue(item.NguoiTao) || null,
-        goods: getValue(item.HangHoa) || '',
-        companyId: getValue(item.DonViVanTaiID) || '',
-        rawData: item
-      };
-    });
   }
 
   /**
@@ -483,7 +328,7 @@ class ContainerApiService {
         SoChungTuNhapBai: String(gateOutData.SoChungTuNhapBai),
         DonViVanTaiID: parseInt(gateOutData.DonViVanTaiID),
         SoXe: String(gateOutData.SoXe),
-        NguoiTao: String(gateOutData.NguoiTao),
+        NguoiTao: parseInt(gateOutData.NguoiTao),
         CongTyInHoaDon_PhiHaTang: parseInt(gateOutData.CongTyInHoaDon_PhiHaTang),
         CongTyInHoaDon: parseInt(gateOutData.CongTyInHoaDon),
         DepotID: parseInt(gateOutData.DepotID),

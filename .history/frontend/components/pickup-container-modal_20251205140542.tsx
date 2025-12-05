@@ -147,8 +147,6 @@ export function PickupContainerModal({
         if (result.success && result.data) {
           const companyId = result.data.id;
           const companyName = result.data.name;
-          const companyid_Invoice = result.data.companyid_Invoice || '';
-          const companyname_Invoice = result.data.companyname_Invoice || '';
           setUserCompany(result.data)
           console.log(`✅ Loaded user company:`, result.data)
           console.log(`📝 Auto-filling company ID: ${companyId}`)
@@ -158,10 +156,10 @@ export function PickupContainerModal({
             ...prev,
             transportCompanyId: companyId,
             transportCompanyName: companyName,
-            invoiceCompanyInfra: companyid_Invoice,
-            invoiceCompanyInfra_Name: companyname_Invoice,
-            invoiceCompany: companyid_Invoice,
-            invoiceCompany_Name: companyname_Invoice,
+            invoiceCompanyInfra: companyId,
+            invoiceCompanyInfra_Name: companyName,
+            invoiceCompany: companyId,
+            invoiceCompany_Name: companyName,
             creatorId: user.id, // Mã người tạo = user id
           }))
           
@@ -355,7 +353,7 @@ export function PickupContainerModal({
         HangTauID: parseInt(container.rawApiData.HangTauID),
         ContTypeSizeID: parseInt(container.rawApiData.ContTypeSizeID),
         DonViVanTaiID: parseInt(formData.transportCompanyId),
-        NguoiTao: user?.username || formData.creatorId,
+        NguoiTao: user.username || formData.creatorId,
         CongTyInHoaDon_PhiHaTang: parseInt(formData.invoiceCompanyInfra),
         CongTyInHoaDon: parseInt(formData.invoiceCompany),
         DepotID: parseInt(container.rawApiData.DepotID),
@@ -375,6 +373,7 @@ export function PickupContainerModal({
         setLoading(false)
         return
       }
+      debugger
       // Prepare gate-out data matching API structure
       const gateOutData = {
         HangTauID: parsedFields.HangTauID,
