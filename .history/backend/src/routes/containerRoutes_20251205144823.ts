@@ -15,8 +15,8 @@ const router = express.Router();
 // GET /api/containers/reuse-now - Get list of reuse containers (must be before /:id)
 router.get('/reuse-now', getListReUseNow);
 
-// GET /api/containers/registered - Get registered containers from external API
-router.get('/registered', getApiRegisteredContainers);
+// GET /api/containers/registered-api - Get registered containers from external API
+router.get('/registered-api', getApiRegisteredContainers);
 
 // POST /api/containers/gate-out - Create gate out for container
 router.post('/gate-out', createGateOut);

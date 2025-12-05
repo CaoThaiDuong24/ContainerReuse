@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
+import { storageService } from '../utils/storageService';
 import shippingLineApiService from '../services/shippingLineApiService';
 
 // GET /api/containers - Get all containers (reuse containers)
 export const getContainers = async (req: Request, res: Response) => {
   try {
-    const path = require('path');
-    const { ContainerApiService } = require(path.join(__dirname, '../services/containerApiService.js'));
+    const { ContainerApiService } = require('../services/containerApiService.js');
     const containerApiService = new ContainerApiService();
     let containers = await containerApiService.getListReUseGroupNow();
     
@@ -58,8 +58,7 @@ export const getContainers = async (req: Request, res: Response) => {
 // GET /api/containers/reuse-now - Get list of reuse containers
 export const getListReUseNow = async (_req: Request, res: Response) => {
   try {
-    const path = require('path');
-    const { ContainerApiService } = require(path.join(__dirname, '../services/containerApiService.js'));
+    const { ContainerApiService } = require('../services/containerApiService.js');
     const containerApiService = new ContainerApiService();
     const containers = await containerApiService.getListReUseGroupNow();
     
@@ -91,8 +90,7 @@ export const getListReUseNow = async (_req: Request, res: Response) => {
 // GET /api/containers/:id - Get container by ID
 export const getContainerById = async (req: Request, res: Response) => {
   try {
-    const path = require('path');
-    const { ContainerApiService } = require(path.join(__dirname, '../services/containerApiService.js'));
+    const { ContainerApiService } = require('../services/containerApiService.js');
     const containerApiService = new ContainerApiService();
     const containers = await containerApiService.getListReUseGroupNow();
     
@@ -236,8 +234,7 @@ export const createGateOut = async (req: Request, res: Response) => {
     
     console.log('✅ All required fields present');
     
-    const path = require('path');
-    const { ContainerApiService } = require(path.join(__dirname, '../services/containerApiService.js'));
+    const { ContainerApiService } = require('../services/containerApiService.js');
     const containerApiService = new ContainerApiService();
     const result = await containerApiService.createGateOut(gateOutData);
     
@@ -246,6 +243,24 @@ export const createGateOut = async (req: Request, res: Response) => {
     console.log('========================================\n');
     
     if (result.success) {
+      // Save registered container to storage
+      try {
+        const userId = gateOutData.NguoiTao;
+        
+        // Use containerInfo if provided, otherwise use result.data
+        const containerData = gateOutData.containerInfo || result.data;
+        
+        const registeredContainer = storageService.addRegisteredContainer(
+          userId,
+          containerData,
+          gateOutData
+        );
+        console.log('✅ Container registration saved:', registeredContainer.id);
+      } catch (storageError) {
+        console.error('⚠️ Failed to save registration:', storageError);
+        // Don't fail the request if storage fails
+      }
+      
       return res.status(201).json({
         success: true,
         message: 'Gate out created successfully',
@@ -301,38 +316,21 @@ export const createGateOut = async (req: Request, res: Response) => {
 // GET /api/containers/registered - Get registered containers from external API
 export const getApiRegisteredContainers = async (req: Request, res: Response) => {
   try {
-    // Get DonViVanTaiID from query (can be named as companyId for frontend compatibility)
-    const DonViVanTaiID = req.query.companyId ? parseInt(req.query.companyId as string) : null;
+    const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
     
-    console.log('\n========================================');
-    console.log('📋 GET REGISTERED CONTAINERS REQUEST');
-    console.log('========================================');
-    console.log('🏢 Company ID (DonViVanTaiID):', DonViVanTaiID || 'all companies');
-    console.log('📡 Calling external API: GetList_DonHang_ReUse_Out_Now');
+    console.log('📋 Getting registered containers from external API for company:', companyId || 'all companies');
     
-    const path = require('path');
-    const { ContainerApiService } = require(path.join(__dirname, '../services/containerApiService.js'));
+    const { ContainerApiService } = require('../services/containerApiService.js');
     const containerApiService = new ContainerApiService();
-    const containers = await containerApiService.getListDonHangReUseOutNow(DonViVanTaiID);
-    
-    console.log('📊 API Response Summary:');
-    console.log('   - Containers received:', containers?.length || 0);
-    console.log('   - Is array:', Array.isArray(containers));
+    const containers = await containerApiService.getListDonHangReUseOutNow(companyId);
     
     if (!containers || !Array.isArray(containers)) {
-      console.log('❌ Invalid response from external API');
       return res.status(503).json({
         success: false,
         message: 'Unable to fetch registered container data from external API',
         count: 0,
         data: []
       });
-    }
-    
-    if (containers.length === 0) {
-      console.log('⚠️ No registered containers found in external API');
-      console.log('   This means: No gate-out orders exist for this company');
-      console.log('========================================\n');
     }
     
     // Get shipping lines data to enrich container info
@@ -349,22 +347,14 @@ export const getApiRegisteredContainers = async (req: Request, res: Response) =>
       };
     });
     
-    console.log('✅ Response prepared:');
-    console.log('   - Total containers:', enrichedContainers.length);
-    console.log('   - Enriched with shipping line data');
-    console.log('========================================\n');
-    
     return res.json({
       success: true,
-      message: enrichedContainers.length > 0 
-        ? 'Get registered containers from API successfully' 
-        : 'API call successful but no registered containers found',
+      message: 'Get registered containers from API successfully',
       count: enrichedContainers.length,
       data: enrichedContainers
     });
   } catch (error) {
-    console.error('❌ Error in getApiRegisteredContainers:', error);
-    console.error('========================================\n');
+    console.error('Error in getApiRegisteredContainers:', error);
     return res.status(500).json({
       success: false,
       message: 'Error getting registered containers from API',

@@ -94,12 +94,9 @@ export default function RegisteredContainersPage() {
       const query = searchQuery.toLowerCase()
       const filtered = containers.filter(container => 
         container.containerNumber?.toLowerCase().includes(query) ||
-        container.eirNumber?.toLowerCase().includes(query) ||
+        container.containerId?.toLowerCase().includes(query) ||
         container.type?.toLowerCase().includes(query) ||
-        container.depot?.toLowerCase().includes(query) ||
-        container.shippingLine?.toLowerCase().includes(query) ||
-        container.vehicleNumber?.toLowerCase().includes(query) ||
-        container.driverName?.toLowerCase().includes(query)
+        container.depot?.toLowerCase().includes(query)
       )
       setFilteredContainers(filtered)
     }
@@ -154,19 +151,13 @@ export default function RegisteredContainersPage() {
         
         // Log sample data if available
         if (containers.length > 0) {
-          console.log('📦 Sample container data (FULL):', containers[0])
-          console.log('📦 Key fields:', {
+          console.log('📦 Sample container data:', {
             id: containers[0].id,
-            eirNumber: containers[0].eirNumber,
             containerNumber: containers[0].containerNumber,
             type: containers[0].type,
             size: containers[0].size,
             depot: containers[0].depot,
-            shippingLine: containers[0].shippingLine,
-            status: containers[0].status,
-            vehicleNumber: containers[0].vehicleNumber,
-            driverName: containers[0].driverName,
-            totalAmount: containers[0].totalAmount
+            shippingLine: containers[0].shippingLine
           })
         }
       } else {
@@ -192,6 +183,22 @@ export default function RegisteredContainersPage() {
       })
     } catch {
       return dateString
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'đã đăng ký':
+      case 'registered':
+        return 'bg-green-100 text-green-800'
+      case 'đang xử lý':
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'hoàn thành':
+      case 'completed':
+        return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -418,33 +425,6 @@ export default function RegisteredContainersPage() {
                           </div>
                         </div>
 
-                        {/* Company Name & ID */}
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-indigo-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Công ty (ID: {container.DonViVanTaiID})</div>
-                            <div className="font-semibold text-gray-900 truncate" title={container.companyName}>
-                              {container.companyName || '-'}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Depot Info */}
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-red-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Depot (ID: {container.depotId})</div>
-                            <div className="font-semibold text-gray-900 truncate" title={container.depotAddress}>
-                              {container.depot}
-                            </div>
-                            {container.depotAddress && (
-                              <div className="text-xs text-gray-500 truncate mt-0.5" title={container.depotAddress}>
-                                {container.depotAddress}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
                         {/* Date */}
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-blue-600" />
@@ -456,31 +436,19 @@ export default function RegisteredContainersPage() {
 
                         {/* Status Badge */}
                         <div className="pt-2">
-                          <Badge variant="outline">
+                          <Badge className={getStatusColor(container.status)}>
                             {container.status}
                           </Badge>
                         </div>
                       </div>
 
-                      {/* Financial Info */}
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tổng tiền:</span>
-                            <span className="font-semibold text-gray-900">
-                              {parseInt(container.totalAmount || '0').toLocaleString('vi-VN')} đ
-                            </span>
-                          </div>
-                          {container.remainingAmount && parseInt(container.remainingAmount) > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Còn lại:</span>
-                              <span className="font-semibold text-orange-600">
-                                {parseInt(container.remainingAmount).toLocaleString('vi-VN')} đ
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      {/* Action Button */}
+                      <Button 
+                        className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                        size="sm"
+                      >
+                        Đăng ký lấy
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -501,16 +469,14 @@ export default function RegisteredContainersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-purple-50">
-                      <TableHead className="font-semibold">Số EIR</TableHead>
-                      <TableHead className="font-semibold">Số Chứng Từ</TableHead>
+                      <TableHead className="font-semibold">Số Container</TableHead>
+                      <TableHead className="font-semibold">Số Booking</TableHead>
                       <TableHead className="font-semibold">Hãng tàu</TableHead>
                       <TableHead className="font-semibold">Loại/Kích thước</TableHead>
                       <TableHead className="font-semibold">Trạng thái</TableHead>
-                      <TableHead className="font-semibold">Depot (ID)</TableHead>
-                      <TableHead className="font-semibold">Địa chỉ Depot</TableHead>
-                      <TableHead className="font-semibold">Công ty (DVVT ID)</TableHead>
-                      <TableHead className="font-semibold">Xe / Tài xế</TableHead>
-                      <TableHead className="font-semibold">Ngày tạo</TableHead>
+                      <TableHead className="font-semibold">Depot</TableHead>
+                      <TableHead className="font-semibold">Số xe</TableHead>
+                      <TableHead className="font-semibold">Ngày đăng ký</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -519,7 +485,7 @@ export default function RegisteredContainersPage() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             <Hash className="h-4 w-4 text-gray-400" />
-                            {container.eirNumber || 'N/A'}
+                            {container.containerId || 'N/A'}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -550,37 +516,23 @@ export default function RegisteredContainersPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-medium">{container.size} {container.type}</span>
+                            <span className="font-medium">{container.type || 'N/A'}</span>
+                            {container.size && (
+                              <span className="text-sm text-gray-500">{container.size}</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
+                          <Badge className={getStatusColor(container.status)}>
                             {container.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm">{container.depot || '-'}</span>
-                            <span className="text-xs text-gray-500">ID: {container.depotId || '-'}</span>
-                          </div>
+                          {container.depot || '-'}
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-600 max-w-xs truncate" title={container.depotAddress}>
-                            {container.depotAddress || '-'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm truncate max-w-xs" title={container.companyName}>
-                              {container.companyName || '-'}
-                            </span>
-                            <span className="text-xs text-gray-500">DVVT ID: {container.DonViVanTaiID || '-'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm">{container.vehicleNumber || '-'}</span>
-                            <span className="text-xs text-gray-500">{container.driverName || '-'}</span>
+                          <div className="flex items-center gap-2">
+                            {container.vehicleNumber || '-'}
                           </div>
                         </TableCell>
                         <TableCell>

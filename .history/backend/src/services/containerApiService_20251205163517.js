@@ -263,22 +263,18 @@ class ContainerApiService {
       
       // Add DonViVanTaiID to request if provided (same as NhaXeID in driver API)
       if (DonViVanTaiID) {
-        requestData.DonViVanTaiID = String(DonViVanTaiID); // Convert to string to match API expectation
-        console.log(`✅ Added DonViVanTaiID filter: ${requestData.DonViVanTaiID}`);
-      } else {
-        console.log('⚠️ No DonViVanTaiID provided - will fetch ALL orders');
+        requestData.DonViVanTaiID = DonViVanTaiID;
       }
 
-      // Always get fresh token with the filter parameter to ensure API returns filtered data
-      // This is critical - the token must include DonViVanTaiID in the request
-      console.log('🔑 Getting token with filter parameters...');
-      console.log('📦 Request data for token:', JSON.stringify(requestData, null, 2));
-      const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", requestData);
-      if (!tokenData) {
-        throw new Error('Failed to get token');
+      if (!this.token || !this.reqtime) {
+        console.log('⚠️ Token not available, getting new token...');
+        const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", requestData);
+        if (!tokenData) {
+          throw new Error('Failed to get token');
+        }
+        this.token = tokenData.token;
+        this.reqtime = tokenData.reqtime;
       }
-      this.token = tokenData.token;
-      this.reqtime = tokenData.reqtime;
 
       console.log('📡 Calling API to get registered container list (DonHang Out Now)...');
       console.log(`URL: ${this.apiUrl}/api/data/process/GetList_DonHang_ReUse_Out_Now`);
@@ -474,6 +470,7 @@ class ContainerApiService {
           ContainerType: getValue(item.ContainerType),
           HangTau: getValue(item.HangTau),
           Depot: getValue(item.Depot),
+          _fullItem: item
           _fullItem: item
         }
       };

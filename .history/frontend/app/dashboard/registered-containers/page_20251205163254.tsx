@@ -418,33 +418,6 @@ export default function RegisteredContainersPage() {
                           </div>
                         </div>
 
-                        {/* Company Name & ID */}
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-indigo-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Công ty (ID: {container.DonViVanTaiID})</div>
-                            <div className="font-semibold text-gray-900 truncate" title={container.companyName}>
-                              {container.companyName || '-'}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Depot Info */}
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-red-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Depot (ID: {container.depotId})</div>
-                            <div className="font-semibold text-gray-900 truncate" title={container.depotAddress}>
-                              {container.depot}
-                            </div>
-                            {container.depotAddress && (
-                              <div className="text-xs text-gray-500 truncate mt-0.5" title={container.depotAddress}>
-                                {container.depotAddress}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
                         {/* Date */}
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-blue-600" />
@@ -506,9 +479,7 @@ export default function RegisteredContainersPage() {
                       <TableHead className="font-semibold">Hãng tàu</TableHead>
                       <TableHead className="font-semibold">Loại/Kích thước</TableHead>
                       <TableHead className="font-semibold">Trạng thái</TableHead>
-                      <TableHead className="font-semibold">Depot (ID)</TableHead>
-                      <TableHead className="font-semibold">Địa chỉ Depot</TableHead>
-                      <TableHead className="font-semibold">Công ty (DVVT ID)</TableHead>
+                      <TableHead className="font-semibold">Depot</TableHead>
                       <TableHead className="font-semibold">Xe / Tài xế</TableHead>
                       <TableHead className="font-semibold">Ngày tạo</TableHead>
                     </TableRow>
@@ -554,28 +525,12 @@ export default function RegisteredContainersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
+                          <Badge className={getStatusColor(container.status)}>
                             {container.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm">{container.depot || '-'}</span>
-                            <span className="text-xs text-gray-500">ID: {container.depotId || '-'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-gray-600 max-w-xs truncate" title={container.depotAddress}>
-                            {container.depotAddress || '-'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm truncate max-w-xs" title={container.companyName}>
-                              {container.companyName || '-'}
-                            </span>
-                            <span className="text-xs text-gray-500">DVVT ID: {container.DonViVanTaiID || '-'}</span>
-                          </div>
+                          {container.depot || '-'}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">

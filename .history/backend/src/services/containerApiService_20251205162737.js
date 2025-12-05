@@ -263,22 +263,18 @@ class ContainerApiService {
       
       // Add DonViVanTaiID to request if provided (same as NhaXeID in driver API)
       if (DonViVanTaiID) {
-        requestData.DonViVanTaiID = String(DonViVanTaiID); // Convert to string to match API expectation
-        console.log(`✅ Added DonViVanTaiID filter: ${requestData.DonViVanTaiID}`);
-      } else {
-        console.log('⚠️ No DonViVanTaiID provided - will fetch ALL orders');
+        requestData.DonViVanTaiID = DonViVanTaiID;
       }
 
-      // Always get fresh token with the filter parameter to ensure API returns filtered data
-      // This is critical - the token must include DonViVanTaiID in the request
-      console.log('🔑 Getting token with filter parameters...');
-      console.log('📦 Request data for token:', JSON.stringify(requestData, null, 2));
-      const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", requestData);
-      if (!tokenData) {
-        throw new Error('Failed to get token');
+      if (!this.token || !this.reqtime) {
+        console.log('⚠️ Token not available, getting new token...');
+        const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", requestData);
+        if (!tokenData) {
+          throw new Error('Failed to get token');
+        }
+        this.token = tokenData.token;
+        this.reqtime = tokenData.reqtime;
       }
-      this.token = tokenData.token;
-      this.reqtime = tokenData.reqtime;
 
       console.log('📡 Calling API to get registered container list (DonHang Out Now)...');
       console.log(`URL: ${this.apiUrl}/api/data/process/GetList_DonHang_ReUse_Out_Now`);
@@ -388,37 +384,49 @@ class ContainerApiService {
         return field;
       };
 
+      // Get ContTypeSizeID and map to size and type
+      const contTypeSizeID = getValue(item.ContTypeSizeID);
+      const sizeTypeMap = {
+        '14': { size: "20'", type: 'DC' },   // 20DC
+        '67': { size: "40'", type: 'HC' },   // 40HC
+        '15': { size: "40'", type: 'DC' },   // 40DC
+        '16': { size: "45'", type: 'HC' },   // 45HC
+        // Add more mappings as needed
+      };
+      
+      const sizeType = sizeTypeMap[contTypeSizeID] || { size: "40'", type: 'HC' };
+
       return {
         id: getValue(item.ID) || '',
-        orderId: getValue(item.ID) || '',
-        eirNumber: getValue(item.EIRNo) || '',
-        containerNumber: getValue(item.SoChungTuNhapBai) || '',
-        type: getValue(item.ContTypeSizeID) || '',
-        size: getValue(item.ContTypeSizeID) || '',
-        status: getValue(item.TenTrangThaiDonHang) || '',
-        depot: getValue(item.TenDepot) || '',
-        depotId: getValue(item.DepotID) || '',
-        depotAddress: getValue(item.DiaChiDepot) || '',
-        registeredAt: getValue(item.NgayTao) || new Date().toISOString(),
-        orderType: getValue(item.TenLoaiDonHang) || '',
-        vehicleNumber: getValue(item.SoXe) || '',
-        driverName: getValue(item.HoTen) || '',
-        driverPhone: getValue(item.SoDienThoai) || '',
-        driverIdCard: getValue(item.SoCMND) || '',
-        driverBirthDate: getValue(item.NgaySinh) || '',
-        shippingLine: getValue(item.TenCongTyVietTat) || '',
-        shippingLineId: getValue(item.HangTauID) || '',
-        companyName: getValue(item.CongTyInHoaDon_TenCongTy) || '',
-        companyId: getValue(item.CongTyInHoaDon) || '',
-        companyAddress: getValue(item.CongTyInHoaDon_DiaChi) || '',
-        gatePass: getValue(item.VeCong) || '',
-        liftingFee: getValue(item.VeNangHa) || '',
-        extraFee: getValue(item.PhuPhiXeNang) || '',
-        totalAmount: getValue(item.TongTien) || '',
-        paidAmount: getValue(item.TongTienDaThanhToan) || '',
-        remainingAmount: getValue(item.TongTienConLai) || '',
-        userId: getValue(item.NguoiTao) || null,
-        DonViVanTaiID: getValue(item.DonViVanTaiID) || '',
+        orderId: getValue(item.ID) || '',                    // ID đơn hàng
+        eirNumber: getValue(item.EIRNo) || '',               // Số EIR
+        containerNumber: getValue(item.SoChungTuNhapBai) || 'N/A', // Số chứng từ nhập bãi
+        type: sizeType.type,                                  // Loại container (DC/HC)
+        size: sizeType.size,                                  // Kích thước (20'/40'/45')
+        status: getValue(item.TenTrangThaiDonHang) || 'Đang chờ duyệt', // Trạng thái đơn hàng
+        depot: getValue(item.TenDepot) || 'N/A',             // Tên depot (BSD, THT, etc.)
+        depotId: getValue(item.DepotID) || '',               // ID depot
+        depotAddress: getValue(item.DiaChiDepot) || '',      // Địa chỉ depot
+        registeredAt: getValue(item.NgayTao) || new Date().toISOString(), // Ngày tạo
+        orderType: getValue(item.TenLoaiDonHang) || '',      // Loại đơn hàng (Gate OUT)
+        vehicleNumber: getValue(item.SoXe) || '',            // Số xe
+        driverName: getValue(item.HoTen) || '',              // Tên tài xế
+        driverPhone: getValue(item.SoDienThoai) || '',       // Số điện thoại tài xế
+        driverIdCard: getValue(item.SoCMND) || '',           // Số CMND tài xế
+        driverBirthDate: getValue(item.NgaySinh) || '',      // Ngày sinh tài xế
+        shippingLine: getValue(item.TenCongTyVietTat) || 'N/A', // Hãng tàu viết tắt (COS, CMA, etc.)
+        shippingLineId: getValue(item.HangTauID) || '',      // ID hãng tàu
+        companyName: getValue(item.CongTyInHoaDon_TenCongTy) || '', // Tên công ty in hóa đơn
+        companyId: getValue(item.CongTyInHoaDon) || '',      // ID công ty in hóa đơn
+        companyAddress: getValue(item.CongTyInHoaDon_DiaChi) || '', // Địa chỉ công ty
+        gatePass: getValue(item.VeCong) || '',               // Phí vé cổng
+        liftingFee: getValue(item.VeNangHa) || '',           // Phí nâng hạ
+        extraFee: getValue(item.PhuPhiXeNang) || '',         // Phụ phí xe nâng
+        totalAmount: getValue(item.TongTien) || '',          // Tổng tiền
+        paidAmount: getValue(item.TongTienDaThanhToan) || '', // Tổng tiền đã thanh toán
+        remainingAmount: getValue(item.TongTienConLai) || '', // Tổng tiền còn lại
+        userId: getValue(item.NguoiTao) || null,             // Người tạo
+        DonViVanTaiID: getValue(item.DonViVanTaiID) || '',   // Đơn vị vận tải ID
         rawData: item
       };
     });
@@ -457,14 +465,16 @@ class ContainerApiService {
         containerId: getValue(item.ContID) || '',
         size: size,
         type: type,
-        status: getValue(item.Status) || getValue(item.TrangThai) || '',
-        depotId: depotId,
+        status: 'available', // Default status
+        depotId: depotId, // Dùng ID từ API (15, 1, 3, etc.)
         depotName: getValue(item.Depot) || '',
-        owner: getValue(item.HangTau) || '',
-        condition: getValue(item.Condition) || getValue(item.TinhTrang) || '',
-        lastInspection: getValue(item.LastInspection) || getValue(item.NgayKiemTra) || '',
-        inDate: getValue(item.InDate) || getValue(item.NgayNhap) || '',
+        owner: getValue(item.HangTau) || 'N/A',
+        condition: 'good', // Default condition
+        lastInspection: new Date().toISOString().split('T')[0],
+        inDate: new Date().toISOString().split('T')[0],
+        // returnEmptyDate: getValue(item.HanTraRong) || undefined, // Hạn trả rỗng - không hiển thị
         currentLocation: getValue(item.Depot) || '',
+        // Store raw API data for gate-out - ensure all fields are properly extracted
         rawApiData: {
           HangTauID: getValue(item.HangTauID),
           ContTypeSizeID: getValue(item.ContTypeSizeID),
@@ -474,6 +484,7 @@ class ContainerApiService {
           ContainerType: getValue(item.ContainerType),
           HangTau: getValue(item.HangTau),
           Depot: getValue(item.Depot),
+          // Keep full item for debugging
           _fullItem: item
         }
       };

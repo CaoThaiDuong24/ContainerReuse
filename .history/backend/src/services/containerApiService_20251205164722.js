@@ -475,6 +475,7 @@ class ContainerApiService {
           HangTau: getValue(item.HangTau),
           Depot: getValue(item.Depot),
           _fullItem: item
+          _fullItem: item
         }
       };
     });

@@ -28,40 +28,23 @@ import {
   List
 } from "lucide-react"
 
-// Container Interface - Matches GetList_DonHang_ReUse_Out_Now API response
+// Container Interface
 interface RegisteredContainer {
   id: string
-  orderId: string
-  eirNumber: string
+  containerId: string
   containerNumber: string
   type: string
   size: string
   status: string
-  depot: string
-  depotId: string
-  depotAddress: string
+  depot?: string
   registeredAt: string
-  orderType: string
-  vehicleNumber: string
-  driverName: string
-  driverPhone: string
-  driverIdCard: string
-  driverBirthDate: string
-  shippingLine: string
-  shippingLineId: string
-  companyName: string
-  companyId: string
-  companyAddress: string
-  gatePass: string
-  liftingFee: string
-  extraFee: string
-  totalAmount: string
-  paidAmount: string
-  remainingAmount: string
-  userId: string | null
-  DonViVanTaiID: string
+  location?: string
+  vehicleNumber?: string
+  shippingLine?: string
   shippingLineLogo?: string
   shippingLineColor?: string
+  userId?: number
+  emptyReturnDeadline?: string
 }
 
 interface ApiResponse {
@@ -94,12 +77,9 @@ export default function RegisteredContainersPage() {
       const query = searchQuery.toLowerCase()
       const filtered = containers.filter(container => 
         container.containerNumber?.toLowerCase().includes(query) ||
-        container.eirNumber?.toLowerCase().includes(query) ||
+        container.containerId?.toLowerCase().includes(query) ||
         container.type?.toLowerCase().includes(query) ||
-        container.depot?.toLowerCase().includes(query) ||
-        container.shippingLine?.toLowerCase().includes(query) ||
-        container.vehicleNumber?.toLowerCase().includes(query) ||
-        container.driverName?.toLowerCase().includes(query)
+        container.depot?.toLowerCase().includes(query)
       )
       setFilteredContainers(filtered)
     }
@@ -114,9 +94,8 @@ export default function RegisteredContainersPage() {
       // For now, use test companyId (DonViVanTaiID)
       const companyId = 38512; // This should come from auth context in production
       
-      console.log('🔄 Fetching registered containers from API...')
-      console.log('📍 API URL:', `${API_BASE_URL}/api/containers/registered`)
-      console.log('🏢 Company ID:', companyId)
+      console.log('Fetching registered containers from:', `${API_BASE_URL}/api/containers/registered`)
+      console.log('Company ID:', companyId)
       
       const response = await fetch(`${API_BASE_URL}/api/containers/registered?companyId=${companyId}`, {
         method: 'GET',
@@ -126,55 +105,25 @@ export default function RegisteredContainersPage() {
         }
       })
       
-      console.log('📡 Response status:', response.status)
+      console.log('Response status:', response.status)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
       const result: ApiResponse = await response.json()
-      console.log('✅ API Response:', {
-        success: result.success,
-        count: result.count,
-        hasData: Array.isArray(result.data),
-        dataLength: result.data?.length || 0,
-        message: result.message
-      })
+      console.log('Registered containers data received:', result)
       
-      // Log full response for debugging when no data
-      if (result.count === 0 || !result.data || result.data.length === 0) {
-        console.log('⚠️ API returned no data:', JSON.stringify(result, null, 2))
-      }
-      
-      if (result.success) {
-        const containers = result.data || []
-        setContainers(containers)
-        setFilteredContainers(containers)
-        console.log(`✅ Loaded ${containers.length} registered containers`)
-        
-        // Log sample data if available
-        if (containers.length > 0) {
-          console.log('📦 Sample container data (FULL):', containers[0])
-          console.log('📦 Key fields:', {
-            id: containers[0].id,
-            eirNumber: containers[0].eirNumber,
-            containerNumber: containers[0].containerNumber,
-            type: containers[0].type,
-            size: containers[0].size,
-            depot: containers[0].depot,
-            shippingLine: containers[0].shippingLine,
-            status: containers[0].status,
-            vehicleNumber: containers[0].vehicleNumber,
-            driverName: containers[0].driverName,
-            totalAmount: containers[0].totalAmount
-          })
-        }
+      if (result.success && result.data) {
+        setContainers(result.data)
+        setFilteredContainers(result.data)
+        console.log('Containers set successfully:', result.data.length, 'containers')
       } else {
-        throw new Error(result.message || 'API returned unsuccessful response')
+        throw new Error(result.message || 'Invalid response format')
       }
     } catch (err) {
-      console.error('❌ Error fetching registered containers:', err)
-      setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu container từ server')
+      console.error('Error fetching registered containers:', err)
+      setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu container')
     } finally {
       setLoading(false)
     }
@@ -192,6 +141,22 @@ export default function RegisteredContainersPage() {
       })
     } catch {
       return dateString
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'đã đăng ký':
+      case 'registered':
+        return 'bg-green-100 text-green-800'
+      case 'đang xử lý':
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'hoàn thành':
+      case 'completed':
+        return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -295,53 +260,27 @@ export default function RegisteredContainersPage() {
 
         {/* Empty State */}
         {!loading && !error && filteredContainers.length === 0 && (
-          <Card className="border-2 border-dashed">
+          <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <Package className="h-10 w-10 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <Package className="h-16 w-16 text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {searchQuery ? 'Không tìm thấy container' : 'Chưa có container đã đăng ký'}
               </h3>
-              <p className="text-gray-600 text-center max-w-2xl mb-2">
+              <p className="text-gray-600 text-center max-w-md">
                 {searchQuery 
-                  ? 'Không tìm thấy container phù hợp với từ khóa tìm kiếm. Thử điều chỉnh từ khóa của bạn.'
-                  : 'Hiện tại không có container nào đã được đăng ký gate-out cho công ty này.'
+                  ? 'Thử điều chỉnh từ khóa tìm kiếm của bạn'
+                  : 'Bạn chưa đăng ký container nào. Hãy đăng ký container để theo dõi tại đây.'
                 }
               </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mb-4">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-semibold mb-1">Về API GetList_DonHang_ReUse_Out_Now:</p>
-                    <ul className="list-disc list-inside space-y-1 text-blue-700">
-                      <li>API đang kết nối thành công với hệ thống external</li>
-                      <li>API hỗ trợ filter theo DonViVanTaiID (tương tự GetList_TaiXe_Thuoc_NhaXe)</li>
-                      <li>Dữ liệu sẽ tự động xuất hiện khi có container được đăng ký gate-out</li>
-                      <li>Bạn có thể đăng ký gate-out từ trang "Container khả dụng"</li>
-                      <li>Company ID đang sử dụng: <span className="font-mono font-bold">38512</span></li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-2">
-                {searchQuery && (
-                  <Button
-                    onClick={() => setSearchQuery('')}
-                    variant="outline"
-                  >
-                    Xóa bộ lọc
-                  </Button>
-                )}
+              {searchQuery && (
                 <Button
-                  onClick={fetchRegisteredContainers}
-                  variant="default"
-                  className="gap-2"
+                  onClick={() => setSearchQuery('')}
+                  variant="outline"
+                  className="mt-4"
                 >
-                  <AlertCircle className="h-4 w-4" />
-                  Làm mới dữ liệu
+                  Xóa bộ lọc
                 </Button>
-              </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -389,59 +328,23 @@ export default function RegisteredContainersPage() {
 
                       {/* Container Details */}
                       <div className="space-y-3">
-                        {/* EIR Number */}
-                        <div className="flex items-center gap-2">
-                          <Hash className="h-4 w-4 text-purple-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Số EIR</div>
-                            <div className="font-semibold text-gray-900 truncate" title={container.eirNumber}>{container.eirNumber || 'N/A'}</div>
-                          </div>
-                        </div>
-
-                        {/* Size & Type */}
+                        {/* Size */}
                         <div className="flex items-center gap-2">
                           <Package className="h-4 w-4 text-green-600" />
                           <div>
-                            <div className="text-xs text-gray-500">Kích thước / Loại</div>
-                            <div className="font-semibold text-gray-900">{container.size} {container.type}</div>
+                            <div className="text-xs text-gray-500">Size</div>
+                            <div className="font-semibold text-gray-900">{container.size || 'N/A'}</div>
                           </div>
                         </div>
 
-                        {/* Vehicle & Driver */}
+                        {/* Type */}
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-orange-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Xe / Tài xế</div>
-                            <div className="font-semibold text-gray-900 truncate" title={`${container.vehicleNumber} - ${container.driverName}`}>
-                              {container.vehicleNumber} - {container.driverName}
-                            </div>
+                          <div className="w-4 h-4 rounded bg-purple-100 flex items-center justify-center">
+                            <span className="text-xs font-bold text-purple-600">T</span>
                           </div>
-                        </div>
-
-                        {/* Company Name & ID */}
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-indigo-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Công ty (ID: {container.DonViVanTaiID})</div>
-                            <div className="font-semibold text-gray-900 truncate" title={container.companyName}>
-                              {container.companyName || '-'}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Depot Info */}
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-red-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Depot (ID: {container.depotId})</div>
-                            <div className="font-semibold text-gray-900 truncate" title={container.depotAddress}>
-                              {container.depot}
-                            </div>
-                            {container.depotAddress && (
-                              <div className="text-xs text-gray-500 truncate mt-0.5" title={container.depotAddress}>
-                                {container.depotAddress}
-                              </div>
-                            )}
+                          <div>
+                            <div className="text-xs text-gray-500">Loại</div>
+                            <div className="font-semibold text-gray-900">{container.type || 'N/A'}</div>
                           </div>
                         </div>
 
@@ -449,38 +352,30 @@ export default function RegisteredContainersPage() {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-blue-600" />
                           <div>
-                            <div className="text-xs text-gray-500">Ngày tạo</div>
+                            <div className="text-xs text-gray-500">Ngày dự kiến xuất</div>
                             <div className="font-semibold text-gray-900">{formatDate(container.registeredAt)}</div>
                           </div>
                         </div>
 
-                        {/* Status Badge */}
-                        <div className="pt-2">
-                          <Badge variant="outline">
-                            {container.status}
-                          </Badge>
-                        </div>
+                        {/* Empty Return Deadline */}
+                        {container.emptyReturnDeadline && (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-orange-600" />
+                            <div>
+                              <div className="text-xs text-gray-500">Hạn Trả Rỗng</div>
+                              <div className="font-semibold text-orange-600">{formatDate(container.emptyReturnDeadline)}</div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Financial Info */}
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tổng tiền:</span>
-                            <span className="font-semibold text-gray-900">
-                              {parseInt(container.totalAmount || '0').toLocaleString('vi-VN')} đ
-                            </span>
-                          </div>
-                          {container.remainingAmount && parseInt(container.remainingAmount) > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Còn lại:</span>
-                              <span className="font-semibold text-orange-600">
-                                {parseInt(container.remainingAmount).toLocaleString('vi-VN')} đ
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      {/* Action Button */}
+                      <Button 
+                        className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                        size="sm"
+                      >
+                        Đăng ký lấy
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -501,16 +396,14 @@ export default function RegisteredContainersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-purple-50">
-                      <TableHead className="font-semibold">Số EIR</TableHead>
-                      <TableHead className="font-semibold">Số Chứng Từ</TableHead>
+                      <TableHead className="font-semibold">Số Container</TableHead>
+                      <TableHead className="font-semibold">Số Booking</TableHead>
                       <TableHead className="font-semibold">Hãng tàu</TableHead>
                       <TableHead className="font-semibold">Loại/Kích thước</TableHead>
                       <TableHead className="font-semibold">Trạng thái</TableHead>
-                      <TableHead className="font-semibold">Depot (ID)</TableHead>
-                      <TableHead className="font-semibold">Địa chỉ Depot</TableHead>
-                      <TableHead className="font-semibold">Công ty (DVVT ID)</TableHead>
-                      <TableHead className="font-semibold">Xe / Tài xế</TableHead>
-                      <TableHead className="font-semibold">Ngày tạo</TableHead>
+                      <TableHead className="font-semibold">Depot</TableHead>
+                      <TableHead className="font-semibold">Số xe</TableHead>
+                      <TableHead className="font-semibold">Ngày đăng ký</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -519,7 +412,7 @@ export default function RegisteredContainersPage() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             <Hash className="h-4 w-4 text-gray-400" />
-                            {container.eirNumber || 'N/A'}
+                            {container.containerId || 'N/A'}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -550,37 +443,23 @@ export default function RegisteredContainersPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-medium">{container.size} {container.type}</span>
+                            <span className="font-medium">{container.type || 'N/A'}</span>
+                            {container.size && (
+                              <span className="text-sm text-gray-500">{container.size}</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
+                          <Badge className={getStatusColor(container.status)}>
                             {container.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm">{container.depot || '-'}</span>
-                            <span className="text-xs text-gray-500">ID: {container.depotId || '-'}</span>
-                          </div>
+                          {container.depot || '-'}
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-600 max-w-xs truncate" title={container.depotAddress}>
-                            {container.depotAddress || '-'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm truncate max-w-xs" title={container.companyName}>
-                              {container.companyName || '-'}
-                            </span>
-                            <span className="text-xs text-gray-500">DVVT ID: {container.DonViVanTaiID || '-'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm">{container.vehicleNumber || '-'}</span>
-                            <span className="text-xs text-gray-500">{container.driverName || '-'}</span>
+                          <div className="flex items-center gap-2">
+                            {container.vehicleNumber || '-'}
                           </div>
                         </TableCell>
                         <TableCell>

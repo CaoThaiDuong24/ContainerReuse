@@ -263,22 +263,18 @@ class ContainerApiService {
       
       // Add DonViVanTaiID to request if provided (same as NhaXeID in driver API)
       if (DonViVanTaiID) {
-        requestData.DonViVanTaiID = String(DonViVanTaiID); // Convert to string to match API expectation
-        console.log(`✅ Added DonViVanTaiID filter: ${requestData.DonViVanTaiID}`);
-      } else {
-        console.log('⚠️ No DonViVanTaiID provided - will fetch ALL orders');
+        requestData.DonViVanTaiID = DonViVanTaiID;
       }
 
-      // Always get fresh token with the filter parameter to ensure API returns filtered data
-      // This is critical - the token must include DonViVanTaiID in the request
-      console.log('🔑 Getting token with filter parameters...');
-      console.log('📦 Request data for token:', JSON.stringify(requestData, null, 2));
-      const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", requestData);
-      if (!tokenData) {
-        throw new Error('Failed to get token');
+      if (!this.token || !this.reqtime) {
+        console.log('⚠️ Token not available, getting new token...');
+        const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", requestData);
+        if (!tokenData) {
+          throw new Error('Failed to get token');
+        }
+        this.token = tokenData.token;
+        this.reqtime = tokenData.reqtime;
       }
-      this.token = tokenData.token;
-      this.reqtime = tokenData.reqtime;
 
       console.log('📡 Calling API to get registered container list (DonHang Out Now)...');
       console.log(`URL: ${this.apiUrl}/api/data/process/GetList_DonHang_ReUse_Out_Now`);
@@ -392,11 +388,11 @@ class ContainerApiService {
         id: getValue(item.ID) || '',
         orderId: getValue(item.ID) || '',
         eirNumber: getValue(item.EIRNo) || '',
-        containerNumber: getValue(item.SoChungTuNhapBai) || '',
+        containerNumber: getValue(item.SoChungTuNhapBai) || 'N/A',
         type: getValue(item.ContTypeSizeID) || '',
         size: getValue(item.ContTypeSizeID) || '',
         status: getValue(item.TenTrangThaiDonHang) || '',
-        depot: getValue(item.TenDepot) || '',
+        depot: getValue(item.TenDepot) || 'N/A',
         depotId: getValue(item.DepotID) || '',
         depotAddress: getValue(item.DiaChiDepot) || '',
         registeredAt: getValue(item.NgayTao) || new Date().toISOString(),
@@ -406,7 +402,7 @@ class ContainerApiService {
         driverPhone: getValue(item.SoDienThoai) || '',
         driverIdCard: getValue(item.SoCMND) || '',
         driverBirthDate: getValue(item.NgaySinh) || '',
-        shippingLine: getValue(item.TenCongTyVietTat) || '',
+        shippingLine: getValue(item.TenCongTyVietTat) || 'N/A',
         shippingLineId: getValue(item.HangTauID) || '',
         companyName: getValue(item.CongTyInHoaDon_TenCongTy) || '',
         companyId: getValue(item.CongTyInHoaDon) || '',
@@ -457,14 +453,16 @@ class ContainerApiService {
         containerId: getValue(item.ContID) || '',
         size: size,
         type: type,
-        status: getValue(item.Status) || getValue(item.TrangThai) || '',
-        depotId: depotId,
+        status: 'available', // Default status
+        depotId: depotId, // Dùng ID từ API (15, 1, 3, etc.)
         depotName: getValue(item.Depot) || '',
-        owner: getValue(item.HangTau) || '',
-        condition: getValue(item.Condition) || getValue(item.TinhTrang) || '',
-        lastInspection: getValue(item.LastInspection) || getValue(item.NgayKiemTra) || '',
-        inDate: getValue(item.InDate) || getValue(item.NgayNhap) || '',
+        owner: getValue(item.HangTau) || 'N/A',
+        condition: 'good', // Default condition
+        lastInspection: new Date().toISOString().split('T')[0],
+        inDate: new Date().toISOString().split('T')[0],
+        // returnEmptyDate: getValue(item.HanTraRong) || undefined, // Hạn trả rỗng - không hiển thị
         currentLocation: getValue(item.Depot) || '',
+        // Store raw API data for gate-out - ensure all fields are properly extracted
         rawApiData: {
           HangTauID: getValue(item.HangTauID),
           ContTypeSizeID: getValue(item.ContTypeSizeID),
@@ -474,6 +472,7 @@ class ContainerApiService {
           ContainerType: getValue(item.ContainerType),
           HangTau: getValue(item.HangTau),
           Depot: getValue(item.Depot),
+          // Keep full item for debugging
           _fullItem: item
         }
       };

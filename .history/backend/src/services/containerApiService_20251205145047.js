@@ -243,12 +243,11 @@ class ContainerApiService {
   /**
    * Get list of registered containers (orders that have been gate-out)
    * Uses GetList_DonHang_ReUse_Out_Now API endpoint
-   * @param {string|number} DonViVanTaiID - ID của đơn vị vận tải (company ID) để filter
    */
-  async getListDonHangReUseOutNow(DonViVanTaiID = null) {
+  async getListDonHangReUseOutNow(companyId = null) {
     try {
       // Cache data for 1 minute to reduce API calls
-      const cacheKey = `donhang_out_now_${DonViVanTaiID || 'all'}`;
+      const cacheKey = `donhang_out_now_${companyId || 'all'}`;
       const cacheExpiry = 1 * 60 * 1000; // 1 minute
       
       if (this.cache[cacheKey] && (Date.now() - this.cache[cacheKey].timestamp < cacheExpiry)) {
@@ -256,33 +255,29 @@ class ContainerApiService {
         return this.cache[cacheKey].data;
       }
 
-      // Prepare request data with DonViVanTaiID filter (similar to GetList_TaiXe_Thuoc_NhaXe)
+      if (!this.token || !this.reqtime) {
+        console.log('⚠️ Token not available, getting new token...');
+        const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", {
+          appversion: '2023'
+        });
+        if (!tokenData) {
+          throw new Error('Failed to get token');
+        }
+        this.token = tokenData.token;
+        this.reqtime = tokenData.reqtime;
+      }
+
+      console.log('📡 Calling API to get registered container list (DonHang Out Now)...');
+      console.log(`URL: ${this.apiUrl}/api/data/process/GetList_DonHang_ReUse_Out_Now`);
+      
       const requestData = {
         appversion: '2023'
       };
       
-      // Add DonViVanTaiID to request if provided (same as NhaXeID in driver API)
-      if (DonViVanTaiID) {
-        requestData.DonViVanTaiID = String(DonViVanTaiID); // Convert to string to match API expectation
-        console.log(`✅ Added DonViVanTaiID filter: ${requestData.DonViVanTaiID}`);
-      } else {
-        console.log('⚠️ No DonViVanTaiID provided - will fetch ALL orders');
+      // Add DonViVanTaiID (transport company ID) if provided
+      if (companyId) {
+        requestData.DonViVanTaiID = parseInt(companyId);
       }
-
-      // Always get fresh token with the filter parameter to ensure API returns filtered data
-      // This is critical - the token must include DonViVanTaiID in the request
-      console.log('🔑 Getting token with filter parameters...');
-      console.log('📦 Request data for token:', JSON.stringify(requestData, null, 2));
-      const tokenData = await this.getToken("GetList_DonHang_ReUse_Out_Now", requestData);
-      if (!tokenData) {
-        throw new Error('Failed to get token');
-      }
-      this.token = tokenData.token;
-      this.reqtime = tokenData.reqtime;
-
-      console.log('📡 Calling API to get registered container list (DonHang Out Now)...');
-      console.log(`URL: ${this.apiUrl}/api/data/process/GetList_DonHang_ReUse_Out_Now`);
-      console.log('📦 Request data:', requestData);
       
       console.log('payload', {
         reqid: "GetList_DonHang_ReUse_Out_Now",
@@ -311,9 +306,10 @@ class ContainerApiService {
         // Transform API data to match frontend format
         let containers = await this.transformRegisteredContainerData(response.data.data);
         
-        console.log(`📊 Total containers after transformation: ${containers.length}`);
-        if (DonViVanTaiID) {
-          console.log(`🔍 Filtered by DonViVanTaiID: ${DonViVanTaiID}`);
+        // Filter by userId if provided
+        if (userId) {
+          containers = containers.filter(c => c.userId && c.userId.toString() === userId.toString());
+          console.log('📊 Filtered containers for user', userId, ':', containers.length);
         }
         
         // Cache the result
@@ -344,7 +340,7 @@ class ContainerApiService {
         if (tokenData) {
           this.token = tokenData.token;
           this.reqtime = tokenData.reqtime;
-          return await this.getListDonHangReUseOutNow(DonViVanTaiID);
+          return await this.getListDonHangReUseOutNow(userId);
         }
       }
       return [];
@@ -352,25 +348,7 @@ class ContainerApiService {
   }
 
   /**
-   * Clear cache for container lists
-   * Call this after operations that modify container data (gate-out, etc.)
-   */
-  clearContainerCache() {
-    console.log('🗑️ Clearing container cache...');
-    delete this.cache['reuse_group_now'];
-    delete this.cache['reuse_now'];
-    // Clear all donhang caches
-    Object.keys(this.cache).forEach(key => {
-      if (key.startsWith('donhang_out_now_')) {
-        delete this.cache[key];
-      }
-    });
-    console.log('✅ Container cache cleared');
-  }
-
-  /**
    * Transform registered container API data to frontend format
-   * Maps GetList_DonHang_ReUse_Out_Now API response to frontend container structure
    */
   async transformRegisteredContainerData(apiData) {
     if (!Array.isArray(apiData)) {
@@ -389,36 +367,23 @@ class ContainerApiService {
       };
 
       return {
-        id: getValue(item.ID) || '',
-        orderId: getValue(item.ID) || '',
-        eirNumber: getValue(item.EIRNo) || '',
-        containerNumber: getValue(item.SoChungTuNhapBai) || '',
-        type: getValue(item.ContTypeSizeID) || '',
-        size: getValue(item.ContTypeSizeID) || '',
-        status: getValue(item.TenTrangThaiDonHang) || '',
-        depot: getValue(item.TenDepot) || '',
+        id: getValue(item.ID) || getValue(item.MaPhieuXuat) || '',
+        containerId: getValue(item.MaPhieuXuat) || '',
+        containerNumber: getValue(item.SoChungTuNhapBai) || getValue(item.ContID) || 'N/A',
+        type: getValue(item.ContainerType) || getValue(item.LoaiCont) || 'GP',
+        size: getValue(item.ContainerSize) || getValue(item.KichThuoc) || "40'",
+        status: getValue(item.TrangThai) || 'Đã đăng ký',
+        depot: getValue(item.DepotName) || getValue(item.Depot) || 'N/A',
         depotId: getValue(item.DepotID) || '',
-        depotAddress: getValue(item.DiaChiDepot) || '',
-        registeredAt: getValue(item.NgayTao) || new Date().toISOString(),
-        orderType: getValue(item.TenLoaiDonHang) || '',
+        registeredAt: getValue(item.NgayTao) || getValue(item.ThoiGianTao) || new Date().toISOString(),
+        location: getValue(item.ViTri) || getValue(item.Location) || '',
         vehicleNumber: getValue(item.SoXe) || '',
-        driverName: getValue(item.HoTen) || '',
-        driverPhone: getValue(item.SoDienThoai) || '',
-        driverIdCard: getValue(item.SoCMND) || '',
-        driverBirthDate: getValue(item.NgaySinh) || '',
-        shippingLine: getValue(item.TenCongTyVietTat) || '',
+        shippingLine: getValue(item.HangTau) || 'N/A',
         shippingLineId: getValue(item.HangTauID) || '',
-        companyName: getValue(item.CongTyInHoaDon_TenCongTy) || '',
-        companyId: getValue(item.CongTyInHoaDon) || '',
-        companyAddress: getValue(item.CongTyInHoaDon_DiaChi) || '',
-        gatePass: getValue(item.VeCong) || '',
-        liftingFee: getValue(item.VeNangHa) || '',
-        extraFee: getValue(item.PhuPhiXeNang) || '',
-        totalAmount: getValue(item.TongTien) || '',
-        paidAmount: getValue(item.TongTienDaThanhToan) || '',
-        remainingAmount: getValue(item.TongTienConLai) || '',
+        emptyReturnDeadline: getValue(item.HanTraRong) || '',
         userId: getValue(item.NguoiTao) || null,
-        DonViVanTaiID: getValue(item.DonViVanTaiID) || '',
+        goods: getValue(item.HangHoa) || '',
+        companyId: getValue(item.DonViVanTaiID) || '',
         rawData: item
       };
     });
@@ -457,14 +422,16 @@ class ContainerApiService {
         containerId: getValue(item.ContID) || '',
         size: size,
         type: type,
-        status: getValue(item.Status) || getValue(item.TrangThai) || '',
-        depotId: depotId,
+        status: 'available', // Default status
+        depotId: depotId, // Dùng ID từ API (15, 1, 3, etc.)
         depotName: getValue(item.Depot) || '',
-        owner: getValue(item.HangTau) || '',
-        condition: getValue(item.Condition) || getValue(item.TinhTrang) || '',
-        lastInspection: getValue(item.LastInspection) || getValue(item.NgayKiemTra) || '',
-        inDate: getValue(item.InDate) || getValue(item.NgayNhap) || '',
+        owner: getValue(item.HangTau) || 'N/A',
+        condition: 'good', // Default condition
+        lastInspection: new Date().toISOString().split('T')[0],
+        inDate: new Date().toISOString().split('T')[0],
+        // returnEmptyDate: getValue(item.HanTraRong) || undefined, // Hạn trả rỗng - không hiển thị
         currentLocation: getValue(item.Depot) || '',
+        // Store raw API data for gate-out - ensure all fields are properly extracted
         rawApiData: {
           HangTauID: getValue(item.HangTauID),
           ContTypeSizeID: getValue(item.ContTypeSizeID),
@@ -474,6 +441,7 @@ class ContainerApiService {
           ContainerType: getValue(item.ContainerType),
           HangTau: getValue(item.HangTau),
           Depot: getValue(item.Depot),
+          // Keep full item for debugging
           _fullItem: item
         }
       };
@@ -660,10 +628,6 @@ class ContainerApiService {
               response.data.errorcode === '0' ||
               response.data.errorcode === 0) {
             console.log('✅ Gate out created successfully!');
-            
-            // Clear cache so next container list fetch gets updated data
-            this.clearContainerCache();
-            
             console.log('========== END CREATE GATE OUT ==========\n');
             return {
               success: true,
@@ -674,10 +638,6 @@ class ContainerApiService {
           // If no clear success/error indicator, treat 200/201 as success
           if (response.status === 200 || response.status === 201) {
             console.log('✅ Response received with 200/201, treating as success');
-            
-            // Clear cache so next container list fetch gets updated data
-            this.clearContainerCache();
-            
             console.log('========== END CREATE GATE OUT ==========\n');
             return {
               success: true,
